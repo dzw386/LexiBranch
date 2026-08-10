@@ -1,0 +1,63 @@
+.app {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.app h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  line-height: 1;
+}
+
+.app p {
+  margin: 0;
+}
+
+.eyebrow {
+  color: #646cff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.app button {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #1a1a1a;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.7rem 1.2rem;
+  transition: border-color 0.25s;
+}
+
+.app button:hover {
+  border-color: #646cff;
+}
+
+.app button:focus-visible,
+.app a:focus-visible {
+  outline: 3px solid #646cff;
+  outline-offset: 3px;
+}
+
+.app nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+@media (prefers-color-scheme: light) {
+  .app button {
+    background: #f9f9f9;
+    color: #213547;
+  }
+}

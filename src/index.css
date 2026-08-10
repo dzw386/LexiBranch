@@ -1,0 +1,35 @@
+:root {
+  color: #213547;
+  background: #ffffff;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+}
+
+a {
+  color: #646cff;
+  font-weight: 500;
+  text-decoration: inherit;
+}
+
+a:hover {
+  color: #535bf2;
+}
+
+code {
+  border-radius: 4px;
+  background: #f1f1f1;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  padding: 0.15rem 0.35rem;
+}

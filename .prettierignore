@@ -1,0 +1,7 @@
+node_modules
+dist
+AGENTS.md
+ARCHITECTURE.md
+PLAN.md
+pnpm-lock.yaml
+pnpm-workspace.yaml
