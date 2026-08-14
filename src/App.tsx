@@ -1,27 +1,22 @@
-import { useState } from 'react'
-import './App.css'
+import { Button } from '@/components/ui/button'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <main className="app">
-      <p className="eyebrow">LexiBranch scaffold</p>
-      <h1>Vite + React</h1>
-      <p>
-        Edit <code>src/App.tsx</code> and save to test HMR.
-      </p>
-      <button type="button" onClick={() => setCount((value) => value + 1)}>
-        Count is {count}
-      </button>
-      <nav aria-label="Documentation">
-        <a href="https://vite.dev" target="_blank" rel="noreferrer">
-          Vite documentation
-        </a>
-        <a href="https://react.dev" target="_blank" rel="noreferrer">
-          React documentation
-        </a>
-      </nav>
+    <main className="flex min-h-screen items-center justify-center bg-background px-6 py-12 text-foreground">
+      <section className="w-full max-w-lg space-y-6 rounded-xl border bg-card p-8 shadow-sm">
+        <div className="space-y-2">
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
+            LexiBranch
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Styling setup
+          </h1>
+          <p className="text-muted-foreground">
+            Tailwind CSS and shadcn/ui are ready for the application interface.
+          </p>
+        </div>
+        <Button>Preview Button</Button>
+      </section>
     </main>
   )
 }

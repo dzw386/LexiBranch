@@ -3,10 +3,11 @@ import { describe, expect, it } from 'vitest'
 import App from './App'
 
 describe('App', () => {
-  it('renders the default scaffold page', () => {
+  it('renders the styled shadcn button', () => {
     const markup = renderToStaticMarkup(<App />)
 
-    expect(markup).toContain('<h1>Vite + React</h1>')
-    expect(markup).toContain('Count is 0')
+    expect(markup).toContain('>Styling setup</h1>')
+    expect(markup).toContain('Preview Button')
+    expect(markup).toContain('bg-primary')
   })
 })
