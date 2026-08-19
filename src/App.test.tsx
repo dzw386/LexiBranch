@@ -7,12 +7,16 @@ describe('App', () => {
   it('renders the hardcoded React Flow demo', () => {
     const markup = renderToStaticMarkup(<App />)
 
-    expect(demoNodes).toHaveLength(3)
-    expect(demoEdges).toHaveLength(2)
+    expect(demoNodes).toHaveLength(7)
+    expect(demoEdges).toHaveLength(6)
     expect(markup).toContain('react-flow')
     expect(markup).toContain('Proto-language')
     expect(markup).toContain('Germanic')
     expect(markup).toContain('Slavic')
+    expect(markup).toContain('English')
+    expect(markup).toContain('German')
+    expect(markup).toContain('Polish')
+    expect(markup).toContain('Russian')
     expect(markup).toContain('react-flow__background')
     expect(markup).toContain('react-flow__controls')
   })
