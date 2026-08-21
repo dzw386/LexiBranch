@@ -20,4 +20,16 @@ describe('App', () => {
     expect(markup).toContain('react-flow__background')
     expect(markup).toContain('react-flow__controls')
   })
+
+  it('renders the app shell around the canvas', () => {
+    const markup = renderToStaticMarkup(<App />)
+
+    expect(markup).toContain('<header')
+    expect(markup).toContain('LexiBranch')
+    expect(markup).toContain('New tree')
+    expect(markup).toContain('Import')
+    expect(markup).toContain('Export')
+    expect(markup).toContain('Tree tools sidebar')
+    expect(markup).toContain('Phylogenetic tree canvas')
+  })
 })
