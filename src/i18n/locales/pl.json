@@ -1,0 +1,16 @@
+{
+  "appName": "LexiBranch",
+  "appMonogram": "LB",
+  "appTagline": "Przestrzeń robocza rodzin językowych",
+  "workspaceActions": "Akcje obszaru roboczego",
+  "newTree": "Nowe drzewo",
+  "import": "Importuj",
+  "export": "Eksportuj",
+  "treeToolsSidebar": "Panel narzędzi drzewa",
+  "workspace": "Obszar roboczy",
+  "treeEditor": "Edytor drzewa",
+  "editingToolsPlaceholder": "Narzędzia edycji pojawią się tutaj.",
+  "phylogeneticTreeCanvas": "Obszar drzewa filogenetycznego",
+  "treeControls": "Elementy sterujące widokiem drzewa",
+  "close": "Zamknij"
+}

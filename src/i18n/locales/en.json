@@ -1,0 +1,16 @@
+{
+  "appName": "LexiBranch",
+  "appMonogram": "LB",
+  "appTagline": "Language family workspace",
+  "workspaceActions": "Workspace actions",
+  "newTree": "New tree",
+  "import": "Import",
+  "export": "Export",
+  "treeToolsSidebar": "Tree tools sidebar",
+  "workspace": "Workspace",
+  "treeEditor": "Tree editor",
+  "editingToolsPlaceholder": "Editing tools will appear here.",
+  "phylogeneticTreeCanvas": "Phylogenetic tree canvas",
+  "treeControls": "Tree view controls",
+  "close": "Close"
+}
