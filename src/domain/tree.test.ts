@@ -3,9 +3,13 @@ import {
   addChild,
   createEmptyTree,
   createNode,
+  moveSubtree,
+  reorderChild,
   removeSubtree,
   setBranchLength,
   setLabel,
+  TreeOperationError,
+  type ReorderDirection,
 } from './tree'
 
 describe('createNode', () => {
@@ -246,6 +250,126 @@ describe('removeSubtree', () => {
 
     expect(() => removeSubtree(tree, tree.rootId)).toThrow('cannot be removed')
     expect(() => removeSubtree(tree, 'missing')).toThrow('does not exist')
+  })
+})
+
+describe('moveSubtree', () => {
+  it('moves a subtree to a new parent without mutating the input', () => {
+    const tree = createTreeWithSubtree()
+    const original = structuredClone(tree)
+
+    const result = moveSubtree(tree, 'branch', 'sibling')
+
+    expect(result.nodes.root?.childIds).toEqual(['sibling'])
+    expect(result.nodes.sibling?.childIds).toEqual(['branch'])
+    expect(result.nodes.branch?.parentId).toBe('sibling')
+    expect(result.nodes.leaf?.parentId).toBe('branch')
+    expect(result).not.toBe(tree)
+    expect(result.nodes.branch).not.toBe(tree.nodes.branch)
+    expect(tree).toEqual(original)
+  })
+
+  it('appends a moved subtree to the new parent', () => {
+    const tree = createTreeWithSubtree()
+    const withChild = addChild(tree, 'sibling', { id: 'existing' })
+
+    const result = moveSubtree(withChild, 'branch', 'sibling')
+
+    expect(result.nodes.sibling?.childIds).toEqual(['existing', 'branch'])
+  })
+
+  it('keeps a same-parent move unchanged', () => {
+    const tree = createTreeWithSubtree()
+
+    const result = moveSubtree(tree, 'branch', 'root')
+
+    expect(result).toEqual(tree)
+    expect(result).not.toBe(tree)
+    expect(result.nodes).not.toBe(tree.nodes)
+  })
+
+  it('rejects moving a node into itself or its descendant with a typed error', () => {
+    const tree = createTreeWithSubtree()
+    const original = structuredClone(tree)
+
+    for (const newParentId of ['branch', 'leaf']) {
+      expect(() => moveSubtree(tree, 'branch', newParentId)).toThrow(
+        TreeOperationError,
+      )
+
+      try {
+        moveSubtree(tree, 'branch', newParentId)
+      } catch (error) {
+        expect(error).toBeInstanceOf(TreeOperationError)
+        expect(error).toMatchObject({ code: 'cycle' })
+      }
+    }
+
+    expect(tree).toEqual(original)
+  })
+
+  it('rejects moving the root or using an unknown node', () => {
+    const tree = createTreeWithSubtree()
+
+    expect(() => moveSubtree(tree, tree.rootId, 'branch')).toThrow(
+      'root node cannot be moved',
+    )
+    expect(() => moveSubtree(tree, 'missing', tree.rootId)).toThrow(
+      'does not exist',
+    )
+    expect(() => moveSubtree(tree, 'branch', 'missing')).toThrow(
+      'does not exist',
+    )
+  })
+})
+
+describe('reorderChild', () => {
+  it('moves a child up and down while preserving the input', () => {
+    const tree = createTreeWithSubtree()
+    const original = structuredClone(tree)
+
+    const movedUp = reorderChild(tree, 'root', 'sibling', 'up')
+    const movedDown = reorderChild(movedUp, 'root', 'sibling', 'down')
+
+    expect(movedUp.nodes.root?.childIds).toEqual(['sibling', 'branch'])
+    expect(movedDown.nodes.root?.childIds).toEqual(['branch', 'sibling'])
+    expect(tree).toEqual(original)
+    expect(movedUp.nodes.root).not.toBe(tree.nodes.root)
+  })
+
+  it('leaves a child in place at either ordering boundary', () => {
+    const tree = createTreeWithSubtree()
+
+    const first = reorderChild(tree, 'root', 'branch', 'up')
+    const last = reorderChild(tree, 'root', 'sibling', 'down')
+
+    expect(first).toEqual(tree)
+    expect(last).toEqual(tree)
+    expect(first).not.toBe(tree)
+    expect(last).not.toBe(tree)
+  })
+
+  it('rejects unknown or unrelated parent and child ids', () => {
+    const tree = createTreeWithSubtree()
+
+    expect(() => reorderChild(tree, 'missing', 'branch', 'up')).toThrow(
+      'does not exist',
+    )
+    expect(() => reorderChild(tree, 'root', 'missing', 'up')).toThrow(
+      'does not exist',
+    )
+    expect(() => reorderChild(tree, 'branch', 'sibling', 'up')).toThrow(
+      'not a child',
+    )
+  })
+
+  it('rejects an invalid direction before looking up nodes', () => {
+    const tree = createTreeWithSubtree()
+    const invalidDirection = 'sideways' as ReorderDirection
+
+    expect(() =>
+      reorderChild(tree, 'missing', 'missing', invalidDirection),
+    ).toThrow('direction')
   })
 })
 
