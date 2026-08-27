@@ -33,6 +33,10 @@ describe('App', () => {
     expect(markup).toContain('Russian')
     expect(markup).toContain('react-flow__background')
     expect(markup).toContain('react-flow__controls')
+    expect(markup).toContain('phylo-node')
+    expect(markup).toContain('phylo-node__metadata-badge')
+    expect(demoEdges.every((edge) => edge.type === 'phylo')).toBe(true)
+    expect(demoEdges.some((edge) => edge.data?.branchLength === 0.8)).toBe(true)
   })
 
   it('renders the app shell around the canvas', () => {

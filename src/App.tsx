@@ -7,8 +7,13 @@ import {
 import '@xyflow/react/dist/style.css'
 import { Download, Plus, Upload } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { PhyloEdge } from './components/canvas/PhyloEdge'
+import { PhyloNode } from './components/canvas/PhyloNode'
 import { Button } from './components/ui/button'
 import { demoEdges, demoNodes } from './demo-flow'
+
+const nodeTypes = { phylo: PhyloNode }
+const edgeTypes = { phylo: PhyloEdge }
 
 function App() {
   const { t } = useTranslation()
@@ -96,6 +101,8 @@ function App() {
           <ReactFlow
             nodes={demoNodes}
             edges={demoEdges}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             fitView
             panOnDrag
             zoomOnScroll

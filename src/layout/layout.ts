@@ -1,8 +1,11 @@
 import type { Edge, Node } from '@xyflow/react'
+import type { MetadataValue } from '../domain/types'
 
 export interface NestedTreeNode {
   id: string
   label: string
+  branchLength?: number | null
+  metadata?: Record<string, MetadataValue>
   children?: NestedTreeNode[]
 }
 
@@ -11,9 +14,21 @@ export interface LayoutOptions {
   verticalSpacing?: number
 }
 
+export type PhyloNodeData = {
+  label: string
+  metadata: Record<string, MetadataValue>
+}
+
+export type PhyloEdgeData = {
+  branchLength: number | null
+}
+
+export type PhyloFlowNode = Node<PhyloNodeData, 'phylo'>
+export type PhyloFlowEdge = Edge<PhyloEdgeData, 'phylo'>
+
 export interface FlowLayout {
-  nodes: Node[]
-  edges: Edge[]
+  nodes: PhyloFlowNode[]
+  edges: PhyloFlowEdge[]
 }
 
 const DEFAULT_HORIZONTAL_SPACING = 240
@@ -26,8 +41,8 @@ export function layoutTree(
   const horizontalSpacing =
     options.horizontalSpacing ?? DEFAULT_HORIZONTAL_SPACING
   const verticalSpacing = options.verticalSpacing ?? DEFAULT_VERTICAL_SPACING
-  const nodes: Array<Node | undefined> = []
-  const edges: Edge[] = []
+  const nodes: Array<PhyloFlowNode | undefined> = []
+  const edges: PhyloFlowEdge[] = []
   let leafIndex = 0
 
   function visit(treeNode: NestedTreeNode, depth: number): number {
@@ -40,7 +55,8 @@ export function layoutTree(
         id: `${treeNode.id}-${child.id}`,
         source: treeNode.id,
         target: child.id,
-        type: 'step',
+        type: 'phylo',
+        data: { branchLength: child.branchLength ?? null },
       })
     }
 
@@ -53,9 +69,13 @@ export function layoutTree(
     nodes[nodeIndex] = {
       id: treeNode.id,
       position: { x: depth * horizontalSpacing, y },
-      data: { label: treeNode.label },
-      sourcePosition: 'right' as Node['sourcePosition'],
-      targetPosition: 'left' as Node['targetPosition'],
+      type: 'phylo',
+      data: {
+        label: treeNode.label,
+        metadata: { ...treeNode.metadata },
+      },
+      sourcePosition: 'right' as PhyloFlowNode['sourcePosition'],
+      targetPosition: 'left' as PhyloFlowNode['targetPosition'],
     }
 
     return y
@@ -64,7 +84,7 @@ export function layoutTree(
   visit(tree, 0)
 
   return {
-    nodes: nodes.filter((node): node is Node => node !== undefined),
+    nodes: nodes.filter((node): node is PhyloFlowNode => node !== undefined),
     edges,
   }
 }

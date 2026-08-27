@@ -51,37 +51,79 @@ describe('layoutTree', () => {
     ])
   })
 
-  it('maps every parent-child relationship to a step edge', () => {
+  it('maps every parent-child relationship to a phylogenetic edge', () => {
     const { edges } = layoutTree(testTree)
 
     expect(edges).toEqual([
-      { id: 'root-left', source: 'root', target: 'left', type: 'step' },
-      { id: 'root-right', source: 'root', target: 'right', type: 'step' },
+      {
+        id: 'root-left',
+        source: 'root',
+        target: 'left',
+        type: 'phylo',
+        data: { branchLength: null },
+      },
+      {
+        id: 'root-right',
+        source: 'root',
+        target: 'right',
+        type: 'phylo',
+        data: { branchLength: null },
+      },
       {
         id: 'left-left-a',
         source: 'left',
         target: 'left-a',
-        type: 'step',
+        type: 'phylo',
+        data: { branchLength: null },
       },
       {
         id: 'left-left-b',
         source: 'left',
         target: 'left-b',
-        type: 'step',
+        type: 'phylo',
+        data: { branchLength: null },
       },
       {
         id: 'right-right-a',
         source: 'right',
         target: 'right-a',
-        type: 'step',
+        type: 'phylo',
+        data: { branchLength: null },
       },
       {
         id: 'right-right-b',
         source: 'right',
         target: 'right-b',
-        type: 'step',
+        type: 'phylo',
+        data: { branchLength: null },
       },
     ])
+  })
+
+  it('carries metadata to nodes and branch lengths to child edges', () => {
+    const { nodes, edges } = layoutTree({
+      id: 'root',
+      label: 'Root',
+      metadata: { clade: 'example' },
+      children: [
+        {
+          id: 'leaf',
+          label: 'Leaf',
+          branchLength: 1.5,
+          metadata: { iso: 'lxx' },
+        },
+      ],
+    })
+
+    expect(nodes[0]?.data).toEqual({
+      label: 'Root',
+      metadata: { clade: 'example' },
+    })
+    expect(nodes[1]?.data).toEqual({
+      label: 'Leaf',
+      metadata: { iso: 'lxx' },
+    })
+    expect(edges[0]?.data).toEqual({ branchLength: 1.5 })
   })
 
   it('keeps a single-node tree at the origin', () => {
