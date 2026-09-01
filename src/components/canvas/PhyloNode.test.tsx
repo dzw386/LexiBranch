@@ -13,10 +13,13 @@ const node: PhyloFlowNode = {
   targetPosition: Position.Left,
 }
 
-function renderNode(data: PhyloFlowNode['data']): string {
+function renderNode(
+  data: PhyloFlowNode['data'],
+  selected = false,
+): string {
   return renderToStaticMarkup(
     <ReactFlow
-      nodes={[{ ...node, data }]}
+      nodes={[{ ...node, data, selected }]}
       edges={[]}
       nodeTypes={{ phylo: PhyloNode }}
     />,
@@ -41,5 +44,11 @@ describe('PhyloNode', () => {
 
     expect(markup).toContain('phylo-node__metadata-badge')
     expect(markup).toMatch(/phylo-node__metadata-badge[^>]*>2<\/span>/)
+  })
+
+  it('highlights a selected node', () => {
+    const markup = renderNode(node.data, true)
+
+    expect(markup).toContain('ring-2 ring-ring')
   })
 })

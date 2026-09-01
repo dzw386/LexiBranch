@@ -9,14 +9,26 @@ import { Download, Plus, Upload } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PhyloEdge } from './components/canvas/PhyloEdge'
 import { PhyloNode } from './components/canvas/PhyloNode'
+import { NodeDetailsPanel } from './components/panels/NodeDetailsPanel'
 import { Button } from './components/ui/button'
 import { demoEdges, demoNodes } from './demo-flow'
+import { useTreeStore } from './state/store'
 
 const nodeTypes = { phylo: PhyloNode }
 const edgeTypes = { phylo: PhyloEdge }
+const readOnlyEdgeOptions = { selectable: false, reconnectable: false }
 
 function App() {
   const { t } = useTranslation()
+  const selectedNodeId = useTreeStore((state) => state.selectedNodeId)
+  const selectNode = useTreeStore((state) => state.selectNode)
+  const selectedNode =
+    demoNodes.find((node) => node.id === selectedNodeId) ?? null
+  const selectedBranchLength =
+    selectedNode === null
+      ? null
+      : (demoEdges.find((edge) => edge.target === selectedNode.id)?.data
+          ?.branchLength ?? null)
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground">
@@ -80,18 +92,10 @@ function App() {
           className="hidden w-64 shrink-0 flex-col border-r bg-muted/20 p-4 md:flex"
           aria-label={t('treeToolsSidebar')}
         >
-          <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              {t('workspace')}
-            </p>
-            <h2 className="mt-1 text-base font-medium">{t('treeEditor')}</h2>
-          </div>
-
-          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed bg-background/60 p-5 text-center">
-            <p className="text-sm leading-6 text-muted-foreground">
-              {t('editingToolsPlaceholder')}
-            </p>
-          </div>
+          <NodeDetailsPanel
+            node={selectedNode}
+            branchLength={selectedBranchLength}
+          />
         </aside>
 
         <section
@@ -99,17 +103,27 @@ function App() {
           aria-label={t('phylogeneticTreeCanvas')}
         >
           <ReactFlow
-            nodes={demoNodes}
-            edges={demoEdges}
+            defaultNodes={demoNodes}
+            defaultEdges={demoEdges}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
+            defaultEdgeOptions={readOnlyEdgeOptions}
+            onNodeClick={(_, node) => selectNode(node.id)}
+            onPaneClick={() => selectNode(null)}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            edgesReconnectable={false}
+            connectOnClick={false}
+            deleteKeyCode={null}
+            selectionKeyCode={null}
+            multiSelectionKeyCode={null}
             fitView
             panOnDrag
             zoomOnScroll
             zoomOnPinch
           >
             <Background variant={BackgroundVariant.Lines} gap={24} />
-            <Controls aria-label={t('treeControls')} />
+            <Controls showInteractive={false} aria-label={t('treeControls')} />
           </ReactFlow>
         </section>
       </main>
