@@ -1,5 +1,5 @@
 import type { Edge, Node } from '@xyflow/react'
-import type { MetadataValue } from '../domain/types'
+import type { MetadataValue, PhyloTree } from '../domain/types'
 
 export interface NestedTreeNode {
   id: string
@@ -87,4 +87,27 @@ export function layoutTree(
     nodes: nodes.filter((node): node is PhyloFlowNode => node !== undefined),
     edges,
   }
+}
+
+export function layoutPhyloTree(
+  tree: PhyloTree,
+  options: LayoutOptions = {},
+): FlowLayout {
+  function toNestedTree(nodeId: string): NestedTreeNode {
+    const node = tree.nodes[nodeId]
+
+    if (node === undefined) {
+      throw new Error(`Node "${nodeId}" does not exist.`)
+    }
+
+    return {
+      id: node.id,
+      label: node.label,
+      branchLength: node.branchLength,
+      metadata: { ...node.metadata },
+      children: node.childIds.map(toNestedTree),
+    }
+  }
+
+  return layoutTree(toNestedTree(tree.rootId), options)
 }

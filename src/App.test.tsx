@@ -3,9 +3,9 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { I18nextProvider } from 'react-i18next'
 import { afterEach, describe, expect, it } from 'vitest'
 import App from './App'
-import { demoEdges, demoNodes } from './demo-flow'
+import { layoutPhyloTree } from './layout/layout'
 import i18n from './i18n'
-import { useTreeStore } from './state/store'
+import { createInitialTree, useTreeStore } from './state/store'
 
 function renderApp() {
   return renderToStaticMarkup(
@@ -26,15 +26,16 @@ function mountApp() {
 describe('App', () => {
   afterEach(async () => {
     cleanup()
-    useTreeStore.getState().selectNode(null)
+    useTreeStore.setState({ tree: createInitialTree(), selectedNodeId: null })
     await i18n.changeLanguage('en')
   })
 
-  it('renders the hardcoded React Flow demo', () => {
+  it('renders the initial React Flow tree', () => {
     const markup = renderApp()
+    const { nodes, edges } = layoutPhyloTree(createInitialTree())
 
-    expect(demoNodes).toHaveLength(7)
-    expect(demoNodes.map((node) => node.data.label)).toEqual(
+    expect(nodes).toHaveLength(7)
+    expect(nodes.map((node) => node.data.label)).toEqual(
       expect.arrayContaining([
         'Proto-language',
         'Germanic',
@@ -45,12 +46,12 @@ describe('App', () => {
         'Russian',
       ]),
     )
-    expect(demoEdges).toHaveLength(6)
+    expect(edges).toHaveLength(6)
     expect(markup).toContain('react-flow')
     expect(markup).toContain('react-flow__background')
     expect(markup).toContain('react-flow__controls')
-    expect(demoEdges.every((edge) => edge.type === 'phylo')).toBe(true)
-    expect(demoEdges.some((edge) => edge.data?.branchLength === 0.8)).toBe(true)
+    expect(edges.every((edge) => edge.type === 'phylo')).toBe(true)
+    expect(edges.some((edge) => edge.data?.branchLength === 0.8)).toBe(true)
   })
 
   it('renders the app shell around the canvas', () => {
@@ -104,5 +105,63 @@ describe('App', () => {
 
     fireEvent.click(document.querySelector('.react-flow__pane')!)
     await screen.findByText('Select a node to view its details.')
+  })
+
+  it('updates the selected node and its branch length on valid edits', async () => {
+    mountApp()
+
+    await screen.findByText('Germanic')
+    fireEvent.click(screen.getByText('Germanic'))
+
+    fireEvent.change(await screen.findByLabelText('Label'), {
+      target: { value: 'North Germanic' },
+    })
+    fireEvent.change(screen.getByLabelText('Branch length'), {
+      target: { value: '1.25' },
+    })
+
+    expect(screen.getByText('Germanic')).toBeDefined()
+    expect(
+      (screen.getByLabelText('Branch length') as HTMLInputElement).value,
+    ).toBe('1.25')
+    expect(useTreeStore.getState().tree.nodes.germanic).toMatchObject({
+      label: 'Germanic',
+      branchLength: 0.8,
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    expect(await screen.findByText('North Germanic')).toBeDefined()
+    expect(useTreeStore.getState().tree.nodes.germanic).toMatchObject({
+      label: 'North Germanic',
+      branchLength: 1.25,
+    })
+  })
+
+  it('keeps the canvas value when an edit is invalid', async () => {
+    mountApp()
+
+    await screen.findByText('Germanic')
+    fireEvent.click(screen.getByText('Germanic'))
+
+    fireEvent.change(await screen.findByLabelText('Label'), {
+      target: { value: '' },
+    })
+    fireEvent.change(screen.getByLabelText('Branch length'), {
+      target: { value: '-1' },
+    })
+
+    expect(screen.getByText('Label cannot be empty.')).toBeDefined()
+    expect(
+      screen.getByText(
+        'Branch length must be a number greater than or equal to 0.',
+      ),
+    ).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect(screen.getByText('Germanic')).toBeDefined()
+    expect(useTreeStore.getState().tree.nodes.germanic).toMatchObject({
+      label: 'Germanic',
+      branchLength: 0.8,
+    })
   })
 })

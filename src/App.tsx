@@ -3,32 +3,104 @@ import {
   BackgroundVariant,
   Controls,
   ReactFlow,
+  useReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { useEffect, useMemo, useRef } from 'react'
 import { Download, Plus, Upload } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PhyloEdge } from './components/canvas/PhyloEdge'
 import { PhyloNode } from './components/canvas/PhyloNode'
 import { NodeDetailsPanel } from './components/panels/NodeDetailsPanel'
 import { Button } from './components/ui/button'
-import { demoEdges, demoNodes } from './demo-flow'
+import {
+  layoutPhyloTree,
+  type PhyloFlowEdge,
+  type PhyloFlowNode,
+} from './layout/layout'
 import { useTreeStore } from './state/store'
 
 const nodeTypes = { phylo: PhyloNode }
 const edgeTypes = { phylo: PhyloEdge }
 const readOnlyEdgeOptions = { selectable: false, reconnectable: false }
 
+interface FlowDataSynchronizerProps {
+  nodes: PhyloFlowNode[]
+  edges: PhyloFlowEdge[]
+}
+
+function areNodeDataEqual(
+  previous: PhyloFlowNode['data'],
+  next: PhyloFlowNode['data'],
+): boolean {
+  const previousMetadataKeys = Object.keys(previous.metadata)
+  const nextMetadataKeys = Object.keys(next.metadata)
+
+  return (
+    previous.label === next.label &&
+    previousMetadataKeys.length === nextMetadataKeys.length &&
+    nextMetadataKeys.every(
+      (key) => previous.metadata[key] === next.metadata[key],
+    )
+  )
+}
+
+function FlowDataSynchronizer({ nodes, edges }: FlowDataSynchronizerProps) {
+  const { updateNodeData, updateEdgeData } = useReactFlow<
+    PhyloFlowNode,
+    PhyloFlowEdge
+  >()
+  const previousNodesRef = useRef(nodes)
+  const previousEdgesRef = useRef(edges)
+
+  useEffect(() => {
+    const previousNodes = new Map(
+      previousNodesRef.current.map((node) => [node.id, node]),
+    )
+    for (const node of nodes) {
+      const previousNode = previousNodes.get(node.id)
+
+      if (
+        previousNode !== undefined &&
+        !areNodeDataEqual(previousNode.data, node.data)
+      ) {
+        updateNodeData(node.id, node.data, { replace: true })
+      }
+    }
+
+    const previousEdges = new Map(
+      previousEdgesRef.current.map((edge) => [edge.id, edge]),
+    )
+    for (const edge of edges) {
+      const previousEdge = previousEdges.get(edge.id)
+
+      if (previousEdge?.data?.branchLength !== edge.data?.branchLength) {
+        updateEdgeData(edge.id, edge.data, { replace: true })
+      }
+    }
+
+    previousNodesRef.current = nodes
+    previousEdgesRef.current = edges
+  }, [edges, nodes, updateEdgeData, updateNodeData])
+
+  return null
+}
+
 function App() {
   const { t } = useTranslation()
+  const tree = useTreeStore((state) => state.tree)
   const selectedNodeId = useTreeStore((state) => state.selectedNodeId)
   const selectNode = useTreeStore((state) => state.selectNode)
+  const setLabel = useTreeStore((state) => state.setLabel)
+  const setBranchLength = useTreeStore((state) => state.setBranchLength)
+  const { nodes: layoutNodes, edges } = useMemo(
+    () => layoutPhyloTree(tree),
+    [tree],
+  )
   const selectedNode =
-    demoNodes.find((node) => node.id === selectedNodeId) ?? null
-  const selectedBranchLength =
-    selectedNode === null
-      ? null
-      : (demoEdges.find((edge) => edge.target === selectedNode.id)?.data
-          ?.branchLength ?? null)
+    layoutNodes.find((node) => node.id === selectedNodeId) ?? null
+  const selectedTreeNode =
+    selectedNodeId === null ? undefined : tree.nodes[selectedNodeId]
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground">
@@ -94,7 +166,18 @@ function App() {
         >
           <NodeDetailsPanel
             node={selectedNode}
-            branchLength={selectedBranchLength}
+            branchLength={selectedTreeNode?.branchLength ?? null}
+            isRoot={selectedNodeId === tree.rootId}
+            onLabelChange={(label) => {
+              if (selectedNodeId !== null) {
+                setLabel(selectedNodeId, label)
+              }
+            }}
+            onBranchLengthChange={(branchLength) => {
+              if (selectedNodeId !== null && selectedNodeId !== tree.rootId) {
+                setBranchLength(selectedNodeId, branchLength)
+              }
+            }}
           />
         </aside>
 
@@ -103,8 +186,8 @@ function App() {
           aria-label={t('phylogeneticTreeCanvas')}
         >
           <ReactFlow
-            defaultNodes={demoNodes}
-            defaultEdges={demoEdges}
+            defaultNodes={layoutNodes}
+            defaultEdges={edges}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             defaultEdgeOptions={readOnlyEdgeOptions}
@@ -122,6 +205,7 @@ function App() {
             zoomOnScroll
             zoomOnPinch
           >
+            <FlowDataSynchronizer nodes={layoutNodes} edges={edges} />
             <Background variant={BackgroundVariant.Lines} gap={24} />
             <Controls showInteractive={false} aria-label={t('treeControls')} />
           </ReactFlow>

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import {
   addChild as addChildToTree,
-  createEmptyTree,
+  createNode,
   moveSubtree as moveSubtreeInTree,
   removeSubtree as removeSubtreeFromTree,
   reorderChild as reorderChildInTree,
@@ -30,8 +30,50 @@ export interface TreeStore {
   ) => void
 }
 
+export function createInitialTree(): PhyloTree {
+  const root = createNode({ id: 'proto-language', label: 'Proto-language' })
+  let tree: PhyloTree = {
+    rootId: root.id,
+    nodes: { [root.id]: root },
+  }
+
+  tree = addChildToTree(tree, root.id, {
+    id: 'germanic',
+    label: 'Germanic',
+    branchLength: 0.8,
+    metadata: { branch: 'West Germanic' },
+  })
+  tree = addChildToTree(tree, 'germanic', {
+    id: 'english',
+    label: 'English',
+    branchLength: 0.4,
+  })
+  tree = addChildToTree(tree, 'germanic', {
+    id: 'german',
+    label: 'German',
+    branchLength: 0.4,
+  })
+  tree = addChildToTree(tree, root.id, {
+    id: 'slavic',
+    label: 'Slavic',
+    branchLength: 0.8,
+  })
+  tree = addChildToTree(tree, 'slavic', {
+    id: 'polish',
+    label: 'Polish',
+    branchLength: 0.4,
+  })
+  tree = addChildToTree(tree, 'slavic', {
+    id: 'russian',
+    label: 'Russian',
+    branchLength: 0.4,
+  })
+
+  return tree
+}
+
 export const useTreeStore = create<TreeStore>((set) => ({
-  tree: createEmptyTree(),
+  tree: createInitialTree(),
   selectedNodeId: null,
 
   selectNode: (nodeId) => set({ selectedNodeId: nodeId }),

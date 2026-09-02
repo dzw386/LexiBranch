@@ -1,7 +1,8 @@
+import { memo } from 'react'
 import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react'
 import type { PhyloFlowEdge } from '../../layout/layout'
 
-export function PhyloEdge({
+function PhyloEdgeComponent({
   id,
   markerEnd,
   markerStart,
@@ -64,3 +65,25 @@ export function PhyloEdge({
     />
   )
 }
+
+function areEdgePropsEqual(
+  previous: EdgeProps<PhyloFlowEdge>,
+  next: EdgeProps<PhyloFlowEdge>,
+): boolean {
+  return (
+    previous.id === next.id &&
+    previous.selected === next.selected &&
+    previous.sourceX === next.sourceX &&
+    previous.sourceY === next.sourceY &&
+    previous.targetX === next.targetX &&
+    previous.targetY === next.targetY &&
+    previous.sourcePosition === next.sourcePosition &&
+    previous.targetPosition === next.targetPosition &&
+    previous.markerStart === next.markerStart &&
+    previous.markerEnd === next.markerEnd &&
+    previous.data?.branchLength === next.data?.branchLength &&
+    previous.style === next.style
+  )
+}
+
+export const PhyloEdge = memo(PhyloEdgeComponent, areEdgePropsEqual)

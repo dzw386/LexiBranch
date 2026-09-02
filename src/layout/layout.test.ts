@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { layoutTree, type NestedTreeNode } from './layout'
+import { layoutPhyloTree, layoutTree, type NestedTreeNode } from './layout'
 
 const testTree: NestedTreeNode = {
   id: 'root',
@@ -131,5 +131,35 @@ describe('layoutTree', () => {
 
     expect(nodes[0]?.position).toEqual({ x: 0, y: 0 })
     expect(edges).toEqual([])
+  })
+
+  it('lays out the normalized tree used by the application', () => {
+    const { nodes, edges } = layoutPhyloTree({
+      rootId: 'root',
+      nodes: {
+        root: {
+          id: 'root',
+          parentId: null,
+          childIds: ['leaf'],
+          label: 'Root',
+          branchLength: null,
+          metadata: {},
+        },
+        leaf: {
+          id: 'leaf',
+          parentId: 'root',
+          childIds: [],
+          label: 'Leaf',
+          branchLength: 1.5,
+          metadata: { iso: 'lxx' },
+        },
+      },
+    })
+
+    expect(nodes.map((node) => node.data)).toEqual([
+      { label: 'Root', metadata: {} },
+      { label: 'Leaf', metadata: { iso: 'lxx' } },
+    ])
+    expect(edges[0]?.data).toEqual({ branchLength: 1.5 })
   })
 })
