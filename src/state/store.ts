@@ -17,6 +17,7 @@ export type AddChildOptions = Omit<CreateNodeOptions, 'parentId'>
 export interface TreeStore {
   tree: PhyloTree
   selectedNodeId: string | null
+  pendingMoveNodeId: string | null
   selectNode: (nodeId: string | null) => void
   addChild: (parentId: string, options?: AddChildOptions) => void
   removeSubtree: (nodeId: string) => void
@@ -28,6 +29,9 @@ export interface TreeStore {
     childId: string,
     direction: ReorderDirection,
   ) => void
+  startMoveSubtree: (nodeId: string) => void
+  cancelMoveSubtree: () => void
+  completeMoveSubtree: (newParentId: string) => void
 }
 
 export function createInitialTree(): PhyloTree {
@@ -75,6 +79,7 @@ export function createInitialTree(): PhyloTree {
 export const useTreeStore = create<TreeStore>((set) => ({
   tree: createInitialTree(),
   selectedNodeId: null,
+  pendingMoveNodeId: null,
 
   selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
 
@@ -93,8 +98,10 @@ export const useTreeStore = create<TreeStore>((set) => ({
     set((state) => {
       const parentId = state.tree.nodes[nodeId]?.parentId ?? null
       const tree = removeSubtreeFromTree(state.tree, nodeId)
+      const pendingMoveNodeId =
+        state.pendingMoveNodeId === nodeId ? null : state.pendingMoveNodeId
 
-      return { tree, selectedNodeId: parentId }
+      return { tree, selectedNodeId: parentId, pendingMoveNodeId }
     }),
 
   setLabel: (nodeId, label) =>
@@ -120,4 +127,25 @@ export const useTreeStore = create<TreeStore>((set) => ({
       tree: reorderChildInTree(state.tree, parentId, childId, direction),
       selectedNodeId: childId,
     })),
+
+  startMoveSubtree: (nodeId) => set({ pendingMoveNodeId: nodeId }),
+
+  cancelMoveSubtree: () => set({ pendingMoveNodeId: null }),
+
+  completeMoveSubtree: (newParentId) =>
+    set((state) => {
+      if (state.pendingMoveNodeId === null) {
+        return state
+      }
+
+      return {
+        tree: moveSubtreeInTree(
+          state.tree,
+          state.pendingMoveNodeId,
+          newParentId,
+        ),
+        selectedNodeId: state.pendingMoveNodeId,
+        pendingMoveNodeId: null,
+      }
+    }),
 }))

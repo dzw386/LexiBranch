@@ -1,5 +1,10 @@
 import { memo } from 'react'
-import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react'
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  getSmoothStepPath,
+  type EdgeProps,
+} from '@xyflow/react'
 import type { PhyloFlowEdge } from '../../layout/layout'
 
 function PhyloEdgeComponent({
@@ -32,37 +37,34 @@ function PhyloEdgeComponent({
       : String(branchLength)
 
   return (
-    <BaseEdge
-      id={id}
-      path={path}
-      label={branchLengthLabel}
-      labelX={labelX}
-      labelY={labelY}
-      labelShowBg={branchLengthLabel !== undefined}
-      labelStyle={{
-        fill: 'var(--muted-foreground)',
-        fontSize: 11,
-        fontVariantNumeric: 'tabular-nums',
-      }}
-      labelBgStyle={{
-        fill: 'var(--background)',
-        fillOpacity: 0.92,
-        stroke: 'var(--border)',
-        strokeWidth: 1,
-      }}
-      labelBgPadding={[3, 5]}
-      labelBgBorderRadius={3}
-      className="phylo-edge"
-      style={{
-        stroke: 'var(--muted-foreground)',
-        strokeLinecap: 'square',
-        strokeLinejoin: 'miter',
-        strokeWidth: selected ? 2 : 1.5,
-        ...style,
-      }}
-      markerStart={markerStart}
-      markerEnd={markerEnd}
-    />
+    <>
+      <BaseEdge
+        id={id}
+        path={path}
+        className="phylo-edge"
+        style={{
+          stroke: 'var(--muted-foreground)',
+          strokeLinecap: 'square',
+          strokeLinejoin: 'miter',
+          strokeWidth: selected ? 2 : 1.5,
+          ...style,
+        }}
+        markerStart={markerStart}
+        markerEnd={markerEnd}
+      />
+      {branchLengthLabel !== undefined ? (
+        <EdgeLabelRenderer>
+          <div
+            className="phylo-edge__label nodrag nopan"
+            style={{
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            }}
+          >
+            {branchLengthLabel}
+          </div>
+        </EdgeLabelRenderer>
+      ) : null}
+    </>
   )
 }
 

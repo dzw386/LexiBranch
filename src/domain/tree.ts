@@ -147,6 +147,26 @@ export function removeSubtree(tree: PhyloTree, nodeId: string): PhyloTree {
   return { ...tree, nodes }
 }
 
+export function getSubtreeIds(tree: PhyloTree, nodeId: string): string[] {
+  getNode(tree, nodeId)
+
+  const ids: string[] = []
+  const pending = [nodeId]
+
+  while (pending.length > 0) {
+    const currentId = pending.pop()
+
+    if (currentId === undefined) {
+      continue
+    }
+
+    ids.push(currentId)
+    pending.push(...getNode(tree, currentId).childIds.slice().reverse())
+  }
+
+  return ids
+}
+
 function isInSubtree(
   tree: PhyloTree,
   subtreeRootId: string,

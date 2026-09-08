@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { I18nextProvider } from 'react-i18next'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -23,10 +29,18 @@ function mountApp() {
   )
 }
 
+function countRenderedNodes(): number {
+  return document.querySelectorAll('.react-flow__node').length
+}
+
 describe('App', () => {
   afterEach(async () => {
     cleanup()
-    useTreeStore.setState({ tree: createInitialTree(), selectedNodeId: null })
+    useTreeStore.setState({
+      tree: createInitialTree(),
+      selectedNodeId: null,
+      pendingMoveNodeId: null,
+    })
     await i18n.changeLanguage('en')
   })
 
@@ -163,5 +177,112 @@ describe('App', () => {
       label: 'Germanic',
       branchLength: 0.8,
     })
+  })
+
+  it('adds a child node to the selected node and re-renders the canvas', async () => {
+    mountApp()
+
+    await screen.findByText('Germanic')
+    expect(countRenderedNodes()).toBe(7)
+
+    fireEvent.click(screen.getByText('Germanic'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Add child' }))
+
+    const { tree, selectedNodeId } = useTreeStore.getState()
+    expect(tree.nodes.germanic?.childIds).toHaveLength(3)
+    expect(selectedNodeId).not.toBeNull()
+    expect(tree.nodes[selectedNodeId ?? '']?.parentId).toBe('germanic')
+    await waitFor(() => expect(countRenderedNodes()).toBe(8))
+  })
+
+  it('deletes a subtree only after confirmation', async () => {
+    mountApp()
+
+    await screen.findByText('German')
+    fireEvent.click(screen.getByText('German'))
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Delete subtree' }),
+    )
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.textContent).toContain('permanently delete “German”')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(useTreeStore.getState().tree.nodes.german).toBeDefined()
+    expect(countRenderedNodes()).toBe(7)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete subtree' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }))
+
+    expect(useTreeStore.getState().tree.nodes.german).toBeUndefined()
+    expect(useTreeStore.getState().selectedNodeId).toBe('germanic')
+    await waitFor(() => expect(countRenderedNodes()).toBe(6))
+  })
+
+  it('moves a subtree onto a parent picked from the canvas', async () => {
+    mountApp()
+
+    await screen.findByText('English')
+    fireEvent.click(screen.getByText('English'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Move subtree' }))
+
+    expect(await screen.findByRole('status')).toBeDefined()
+    expect(screen.getByText('Pick a new parent for “English”.')).toBeDefined()
+
+    fireEvent.click(screen.getByText('Slavic'))
+
+    const { tree, pendingMoveNodeId, selectedNodeId } = useTreeStore.getState()
+    expect(tree.nodes.english?.parentId).toBe('slavic')
+    expect(tree.nodes.slavic?.childIds).toContain('english')
+    expect(tree.nodes.germanic?.childIds).not.toContain('english')
+    expect(pendingMoveNodeId).toBeNull()
+    expect(selectedNodeId).toBe('english')
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
+  it('rejects moving a node under its own descendant and keeps the mode', async () => {
+    mountApp()
+
+    await screen.findByText('Germanic')
+    fireEvent.click(screen.getByText('Germanic'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Move subtree' }))
+    await screen.findByRole('status')
+
+    fireEvent.click(screen.getByText('English'))
+
+    expect(
+      screen.getByText('“Germanic” cannot be moved under its own descendant.'),
+    ).toBeDefined()
+    expect(useTreeStore.getState().pendingMoveNodeId).toBe('germanic')
+    expect(useTreeStore.getState().selectedNodeId).toBe('germanic')
+    expect((screen.getByLabelText('Label') as HTMLInputElement).value).toBe(
+      'Germanic',
+    )
+    expect(useTreeStore.getState().tree.nodes.germanic?.parentId).toBe(
+      'proto-language',
+    )
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('status')).toBeNull())
+    expect(useTreeStore.getState().pendingMoveNodeId).toBeNull()
+  })
+
+  it('reorders siblings from the details panel', async () => {
+    mountApp()
+
+    await screen.findByText('German')
+    fireEvent.click(screen.getByText('German'))
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Move up' }))
+    expect(useTreeStore.getState().tree.nodes.germanic?.childIds).toEqual([
+      'german',
+      'english',
+    ])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move down' }))
+    expect(useTreeStore.getState().tree.nodes.germanic?.childIds).toEqual([
+      'english',
+      'german',
+    ])
   })
 })

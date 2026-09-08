@@ -3,10 +3,11 @@ import {
   BackgroundVariant,
   Controls,
   ReactFlow,
-  useReactFlow,
+  type NodeChange,
+  type NodeSelectionChange,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Download, Plus, Upload } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PhyloEdge } from './components/canvas/PhyloEdge'
@@ -14,93 +15,199 @@ import { PhyloNode } from './components/canvas/PhyloNode'
 import { NodeDetailsPanel } from './components/panels/NodeDetailsPanel'
 import { Button } from './components/ui/button'
 import {
-  layoutPhyloTree,
-  type PhyloFlowEdge,
-  type PhyloFlowNode,
-} from './layout/layout'
+  getSubtreeIds,
+  TreeOperationError,
+  type ReorderDirection,
+} from './domain/tree'
+import { cn } from './lib/utils'
+import { layoutPhyloTree, type PhyloFlowNode } from './layout/layout'
 import { useTreeStore } from './state/store'
 
 const nodeTypes = { phylo: PhyloNode }
 const edgeTypes = { phylo: PhyloEdge }
 const readOnlyEdgeOptions = { selectable: false, reconnectable: false }
 
-interface FlowDataSynchronizerProps {
-  nodes: PhyloFlowNode[]
-  edges: PhyloFlowEdge[]
-}
-
-function areNodeDataEqual(
-  previous: PhyloFlowNode['data'],
-  next: PhyloFlowNode['data'],
-): boolean {
-  const previousMetadataKeys = Object.keys(previous.metadata)
-  const nextMetadataKeys = Object.keys(next.metadata)
-
-  return (
-    previous.label === next.label &&
-    previousMetadataKeys.length === nextMetadataKeys.length &&
-    nextMetadataKeys.every(
-      (key) => previous.metadata[key] === next.metadata[key],
-    )
-  )
-}
-
-function FlowDataSynchronizer({ nodes, edges }: FlowDataSynchronizerProps) {
-  const { updateNodeData, updateEdgeData } = useReactFlow<
-    PhyloFlowNode,
-    PhyloFlowEdge
-  >()
-  const previousNodesRef = useRef(nodes)
-  const previousEdgesRef = useRef(edges)
-
-  useEffect(() => {
-    const previousNodes = new Map(
-      previousNodesRef.current.map((node) => [node.id, node]),
-    )
-    for (const node of nodes) {
-      const previousNode = previousNodes.get(node.id)
-
-      if (
-        previousNode !== undefined &&
-        !areNodeDataEqual(previousNode.data, node.data)
-      ) {
-        updateNodeData(node.id, node.data, { replace: true })
-      }
-    }
-
-    const previousEdges = new Map(
-      previousEdgesRef.current.map((edge) => [edge.id, edge]),
-    )
-    for (const edge of edges) {
-      const previousEdge = previousEdges.get(edge.id)
-
-      if (previousEdge?.data?.branchLength !== edge.data?.branchLength) {
-        updateEdgeData(edge.id, edge.data, { replace: true })
-      }
-    }
-
-    previousNodesRef.current = nodes
-    previousEdgesRef.current = edges
-  }, [edges, nodes, updateEdgeData, updateNodeData])
-
-  return null
+interface NodeMeasurement {
+  width: number
+  height: number
 }
 
 function App() {
   const { t } = useTranslation()
   const tree = useTreeStore((state) => state.tree)
   const selectedNodeId = useTreeStore((state) => state.selectedNodeId)
+  const pendingMoveNodeId = useTreeStore((state) => state.pendingMoveNodeId)
   const selectNode = useTreeStore((state) => state.selectNode)
+  const addChild = useTreeStore((state) => state.addChild)
+  const removeSubtree = useTreeStore((state) => state.removeSubtree)
   const setLabel = useTreeStore((state) => state.setLabel)
   const setBranchLength = useTreeStore((state) => state.setBranchLength)
+  const reorderChild = useTreeStore((state) => state.reorderChild)
+  const startMoveSubtree = useTreeStore((state) => state.startMoveSubtree)
+  const cancelMoveSubtree = useTreeStore((state) => state.cancelMoveSubtree)
+  const completeMoveSubtree = useTreeStore((state) => state.completeMoveSubtree)
+  const [moveError, setMoveError] = useState<string | null>(null)
+  const [nodeMeasurements, setNodeMeasurements] = useState<
+    Record<string, NodeMeasurement>
+  >({})
+
   const { nodes: layoutNodes, edges } = useMemo(
     () => layoutPhyloTree(tree),
     [tree],
   )
+  const measuredLayoutNodes = useMemo(
+    () =>
+      layoutNodes.map((node) => {
+        const measured = nodeMeasurements[node.id]
+
+        return measured === undefined ? node : { ...node, measured }
+      }),
+    [layoutNodes, nodeMeasurements],
+  )
+  const nodes = useMemo(
+    () =>
+      measuredLayoutNodes.map((node) =>
+        node.id === selectedNodeId ? { ...node, selected: true } : node,
+      ),
+    [measuredLayoutNodes, selectedNodeId],
+  )
+
   const selectedNode =
     layoutNodes.find((node) => node.id === selectedNodeId) ?? null
   const selectedTreeNode =
     selectedNodeId === null ? undefined : tree.nodes[selectedNodeId]
+  const isRootSelected =
+    selectedNodeId !== null && selectedNodeId === tree.rootId
+  const pendingMoveNode =
+    pendingMoveNodeId === null ? undefined : tree.nodes[pendingMoveNodeId]
+
+  useEffect(() => {
+    if (pendingMoveNodeId === null) {
+      return
+    }
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        setMoveError(null)
+        cancelMoveSubtree()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [pendingMoveNodeId, cancelMoveSubtree])
+
+  const handleNodesChange = useCallback(
+    (changes: NodeChange<PhyloFlowNode>[]) => {
+      if (changes.some((change) => change.type === 'dimensions')) {
+        setNodeMeasurements((current) => {
+          let next = current
+
+          for (const change of changes) {
+            if (
+              change.type !== 'dimensions' ||
+              change.dimensions === undefined
+            ) {
+              continue
+            }
+
+            const previous = current[change.id]
+            const { width, height } = change.dimensions
+            if (previous?.width === width && previous.height === height) {
+              continue
+            }
+
+            if (next === current) {
+              next = { ...current }
+            }
+            next[change.id] = { width, height }
+          }
+
+          return next
+        })
+      }
+
+      if (pendingMoveNodeId !== null) {
+        return
+      }
+
+      const selectedChange = changes.find(
+        (change): change is NodeSelectionChange =>
+          change.type === 'select' && change.selected,
+      )
+      if (selectedChange !== undefined) {
+        selectNode(selectedChange.id)
+        return
+      }
+
+      if (
+        selectedNodeId !== null &&
+        changes.some(
+          (change) =>
+            change.type === 'select' &&
+            !change.selected &&
+            change.id === selectedNodeId,
+        )
+      ) {
+        selectNode(null)
+      }
+    },
+    [pendingMoveNodeId, selectNode, selectedNodeId],
+  )
+
+  function handleNodeClick(nodeId: string): void {
+    if (pendingMoveNodeId === null) {
+      selectNode(nodeId)
+      return
+    }
+
+    if (nodeId === pendingMoveNodeId) {
+      setMoveError(null)
+      cancelMoveSubtree()
+      return
+    }
+
+    try {
+      completeMoveSubtree(nodeId)
+      setMoveError(null)
+    } catch (error) {
+      if (error instanceof TreeOperationError) {
+        setMoveError(
+          t('moveCycleError', { label: pendingMoveNode?.label ?? '' }),
+        )
+      } else {
+        throw error
+      }
+    }
+  }
+
+  function handleCancelMove(): void {
+    setMoveError(null)
+    cancelMoveSubtree()
+  }
+
+  function handleReorder(direction: ReorderDirection): void {
+    if (
+      selectedNodeId === null ||
+      selectedTreeNode === undefined ||
+      selectedTreeNode.parentId === null
+    ) {
+      return
+    }
+
+    reorderChild(selectedTreeNode.parentId, selectedNodeId, direction)
+  }
+
+  const siblingIds =
+    selectedTreeNode?.parentId != null
+      ? (tree.nodes[selectedTreeNode.parentId]?.childIds ?? [])
+      : []
+  const siblingIndex =
+    selectedNodeId === null ? -1 : siblingIds.indexOf(selectedNodeId)
+  const subtreeSize =
+    selectedTreeNode === undefined
+      ? 1
+      : getSubtreeIds(tree, selectedTreeNode.id).length
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground">
@@ -167,7 +274,12 @@ function App() {
           <NodeDetailsPanel
             node={selectedNode}
             branchLength={selectedTreeNode?.branchLength ?? null}
-            isRoot={selectedNodeId === tree.rootId}
+            isRoot={isRootSelected}
+            subtreeSize={subtreeSize}
+            canMoveUp={siblingIndex > 0}
+            canMoveDown={
+              siblingIndex >= 0 && siblingIndex < siblingIds.length - 1
+            }
             onLabelChange={(label) => {
               if (selectedNodeId !== null) {
                 setLabel(selectedNodeId, label)
@@ -178,6 +290,23 @@ function App() {
                 setBranchLength(selectedNodeId, branchLength)
               }
             }}
+            onAddChild={() => {
+              if (selectedNodeId !== null) {
+                addChild(selectedNodeId, { label: t('newNode') })
+              }
+            }}
+            onStartMove={() => {
+              if (selectedNodeId !== null && selectedNodeId !== tree.rootId) {
+                setMoveError(null)
+                startMoveSubtree(selectedNodeId)
+              }
+            }}
+            onReorder={handleReorder}
+            onRemoveSubtree={() => {
+              if (selectedNodeId !== null && selectedNodeId !== tree.rootId) {
+                removeSubtree(selectedNodeId)
+              }
+            }}
           />
         </aside>
 
@@ -185,14 +314,47 @@ function App() {
           className="relative min-h-0 min-w-0 flex-1"
           aria-label={t('phylogeneticTreeCanvas')}
         >
+          {pendingMoveNode !== undefined ? (
+            <div
+              role="status"
+              className="absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-3 border-b bg-card px-4 py-2 shadow-sm"
+            >
+              <p
+                className={cn(
+                  'min-w-0 flex-1 text-sm',
+                  moveError !== null && 'text-destructive',
+                )}
+              >
+                {moveError ??
+                  t('pickNewParentPrompt', { label: pendingMoveNode.label })}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleCancelMove}
+              >
+                {t('pickNewParentCancel')}
+              </Button>
+            </div>
+          ) : null}
+
           <ReactFlow
-            defaultNodes={layoutNodes}
-            defaultEdges={edges}
+            nodes={nodes}
+            edges={edges}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             defaultEdgeOptions={readOnlyEdgeOptions}
-            onNodeClick={(_, node) => selectNode(node.id)}
-            onPaneClick={() => selectNode(null)}
+            elevateNodesOnSelect={false}
+            elevateEdgesOnSelect={false}
+            elementsSelectable={pendingMoveNodeId === null}
+            onNodesChange={handleNodesChange}
+            onNodeClick={(_, node) => handleNodeClick(node.id)}
+            onPaneClick={() => {
+              if (pendingMoveNodeId === null) {
+                selectNode(null)
+              }
+            }}
             nodesDraggable={false}
             nodesConnectable={false}
             edgesReconnectable={false}
@@ -205,7 +367,6 @@ function App() {
             zoomOnScroll
             zoomOnPinch
           >
-            <FlowDataSynchronizer nodes={layoutNodes} edges={edges} />
             <Background variant={BackgroundVariant.Lines} gap={24} />
             <Controls showInteractive={false} aria-label={t('treeControls')} />
           </ReactFlow>

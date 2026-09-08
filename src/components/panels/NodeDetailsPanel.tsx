@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { ReorderDirection } from '../../domain/tree'
 import type { PhyloFlowNode } from '../../layout/layout'
 import { Button } from '../ui/button'
+import { NodeStructureActions } from './NodeStructureActions'
 
 type ValidationError = 'labelRequired' | 'branchLengthInvalid'
 
@@ -9,8 +11,15 @@ export interface NodeDetailsPanelProps {
   node: PhyloFlowNode | null
   branchLength: number | null
   isRoot?: boolean
+  subtreeSize?: number
+  canMoveUp?: boolean
+  canMoveDown?: boolean
   onLabelChange?: (label: string) => void
   onBranchLengthChange?: (branchLength: number | null) => void
+  onAddChild?: () => void
+  onStartMove?: () => void
+  onReorder?: (direction: ReorderDirection) => void
+  onRemoveSubtree?: () => void
 }
 
 interface ValidationErrors {
@@ -190,10 +199,22 @@ export function NodeDetailsPanel({
   node,
   branchLength,
   isRoot = false,
+  subtreeSize = 1,
+  canMoveUp = false,
+  canMoveDown = false,
   onLabelChange,
   onBranchLengthChange,
+  onAddChild,
+  onStartMove,
+  onReorder,
+  onRemoveSubtree,
 }: NodeDetailsPanelProps) {
   const { t } = useTranslation()
+  const hasStructureActions =
+    onAddChild !== undefined &&
+    onStartMove !== undefined &&
+    onReorder !== undefined &&
+    onRemoveSubtree !== undefined
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -220,6 +241,20 @@ export function NodeDetailsPanel({
             onLabelChange={onLabelChange}
             onBranchLengthChange={onBranchLengthChange}
           />
+
+          {hasStructureActions ? (
+            <NodeStructureActions
+              label={node.data.label}
+              subtreeSize={subtreeSize}
+              isRoot={isRoot}
+              canMoveUp={canMoveUp}
+              canMoveDown={canMoveDown}
+              onAddChild={onAddChild}
+              onStartMove={onStartMove}
+              onReorder={onReorder}
+              onRemoveSubtree={onRemoveSubtree}
+            />
+          ) : null}
 
           <dl className="space-y-4">
             <div className="space-y-1">

@@ -3,6 +3,7 @@ import {
   addChild,
   createEmptyTree,
   createNode,
+  getSubtreeIds,
   moveSubtree,
   reorderChild,
   removeSubtree,
@@ -250,6 +251,27 @@ describe('removeSubtree', () => {
 
     expect(() => removeSubtree(tree, tree.rootId)).toThrow('cannot be removed')
     expect(() => removeSubtree(tree, 'missing')).toThrow('does not exist')
+  })
+})
+
+describe('getSubtreeIds', () => {
+  it('returns the node and all of its descendants', () => {
+    const tree = createTreeWithSubtree()
+
+    expect(getSubtreeIds(tree, 'branch')).toEqual(['branch', 'leaf'])
+    expect(getSubtreeIds(tree, 'leaf')).toEqual(['leaf'])
+    expect(getSubtreeIds(tree, 'root')).toEqual([
+      'root',
+      'branch',
+      'leaf',
+      'sibling',
+    ])
+  })
+
+  it('rejects a missing node', () => {
+    const tree = createTreeWithSubtree()
+
+    expect(() => getSubtreeIds(tree, 'missing')).toThrow('does not exist')
   })
 })
 
