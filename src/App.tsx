@@ -19,6 +19,7 @@ import {
   TreeOperationError,
   type ReorderDirection,
 } from './domain/tree'
+import type { MetadataValue } from './domain/types'
 import { cn } from './lib/utils'
 import { layoutPhyloTree, type PhyloFlowNode } from './layout/layout'
 import { useTreeStore } from './state/store'
@@ -42,6 +43,9 @@ function App() {
   const removeSubtree = useTreeStore((state) => state.removeSubtree)
   const setLabel = useTreeStore((state) => state.setLabel)
   const setBranchLength = useTreeStore((state) => state.setBranchLength)
+  const addMetadata = useTreeStore((state) => state.addMetadata)
+  const updateMetadata = useTreeStore((state) => state.updateMetadata)
+  const removeMetadata = useTreeStore((state) => state.removeMetadata)
   const reorderChild = useTreeStore((state) => state.reorderChild)
   const startMoveSubtree = useTreeStore((state) => state.startMoveSubtree)
   const cancelMoveSubtree = useTreeStore((state) => state.cancelMoveSubtree)
@@ -266,9 +270,9 @@ function App() {
         </nav>
       </header>
 
-      <main className="flex min-h-0 flex-1">
+      <main className="flex min-h-0 flex-1 overflow-hidden">
         <aside
-          className="hidden w-64 shrink-0 flex-col border-r bg-muted/20 p-4 md:flex"
+          className="hidden min-h-0 w-64 min-w-0 shrink-0 flex-col border-r bg-muted/20 p-4 md:flex"
           aria-label={t('treeToolsSidebar')}
         >
           <NodeDetailsPanel
@@ -288,6 +292,21 @@ function App() {
             onBranchLengthChange={(branchLength) => {
               if (selectedNodeId !== null && selectedNodeId !== tree.rootId) {
                 setBranchLength(selectedNodeId, branchLength)
+              }
+            }}
+            onAddMetadata={(key, value: MetadataValue) => {
+              if (selectedNodeId !== null) {
+                addMetadata(selectedNodeId, key, value)
+              }
+            }}
+            onUpdateMetadata={(previousKey, key, value: MetadataValue) => {
+              if (selectedNodeId !== null) {
+                updateMetadata(selectedNodeId, previousKey, key, value)
+              }
+            }}
+            onRemoveMetadata={(key) => {
+              if (selectedNodeId !== null) {
+                removeMetadata(selectedNodeId, key)
               }
             }}
             onAddChild={() => {

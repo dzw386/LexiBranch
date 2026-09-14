@@ -61,6 +61,32 @@ describe('NodeDetailsPanel', () => {
     expect(markup).toContain('Save changes')
   })
 
+  it('replaces the edit form when the selected node changes', () => {
+    const { rerender } = render(
+      <I18nextProvider i18n={i18n}>
+        <NodeDetailsPanel node={node} branchLength={0.8} />
+      </I18nextProvider>,
+    )
+
+    rerender(
+      <I18nextProvider i18n={i18n}>
+        <NodeDetailsPanel
+          node={{
+            ...node,
+            id: 'english',
+            data: { ...node.data, label: 'English' },
+          }}
+          branchLength={0.4}
+        />
+      </I18nextProvider>,
+    )
+
+    expect(screen.getAllByText('Edit node')).toHaveLength(1)
+    expect((screen.getByLabelText('Label') as HTMLInputElement).value).toBe(
+      'English',
+    )
+  })
+
   it('shows when branch length and metadata are absent', () => {
     const markup = renderPanel(
       { ...node, data: { label: 'Root', metadata: {} } },
@@ -135,5 +161,75 @@ describe('NodeDetailsPanel', () => {
 
     expect(labelChanges).toEqual(['North Germanic'])
     expect(branchLengthChanges).toEqual([null])
+  })
+
+  it('adds, edits, and removes typed metadata entries', () => {
+    const addedMetadata: Array<[string, string | number | boolean]> = []
+    const updatedMetadata: Array<[string, string, string | number | boolean]> =
+      []
+    const removedMetadata: string[] = []
+
+    render(
+      <I18nextProvider i18n={i18n}>
+        <NodeDetailsPanel
+          node={node}
+          branchLength={0.8}
+          onAddMetadata={(key, value) => addedMetadata.push([key, value])}
+          onUpdateMetadata={(previousKey, key, value) =>
+            updatedMetadata.push([previousKey, key, value])
+          }
+          onRemoveMetadata={(key) => removedMetadata.push(key)}
+        />
+      </I18nextProvider>,
+    )
+
+    fireEvent.change(screen.getByPlaceholderText('New key'), {
+      target: { value: 'attested' },
+    })
+    fireEvent.change(
+      screen.getByLabelText('Type', { selector: '#new-metadata-type' }),
+      {
+        target: { value: 'boolean' },
+      },
+    )
+    fireEvent.change(
+      screen.getByLabelText('Value', { selector: '#new-metadata-value' }),
+      {
+        target: { value: 'true' },
+      },
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Add metadata' }))
+
+    expect(addedMetadata).toEqual([['attested', true]])
+
+    fireEvent.change(screen.getByDisplayValue('West Germanic'), {
+      target: { value: 'West Germanic updated' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save metadata: branch' }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove metadata: confidence' }),
+    )
+
+    expect(updatedMetadata).toEqual([
+      ['branch', 'branch', 'West Germanic updated'],
+    ])
+    expect(removedMetadata).toEqual(['confidence'])
+  })
+
+  it('rejects a duplicate metadata key before saving', () => {
+    render(
+      <I18nextProvider i18n={i18n}>
+        <NodeDetailsPanel node={node} branchLength={0.8} />
+      </I18nextProvider>,
+    )
+
+    fireEvent.change(screen.getByPlaceholderText('New key'), {
+      target: { value: 'branch' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Add metadata' }))
+
+    expect(screen.getByText('Metadata keys must be unique.')).toBeDefined()
   })
 })

@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { MetadataValue } from '../../domain/types'
 import type { ReorderDirection } from '../../domain/tree'
 import type { PhyloFlowNode } from '../../layout/layout'
 import { Button } from '../ui/button'
+import { MetadataEditor } from './MetadataEditor'
 import { NodeStructureActions } from './NodeStructureActions'
 
 type ValidationError = 'labelRequired' | 'branchLengthInvalid'
@@ -16,6 +18,13 @@ export interface NodeDetailsPanelProps {
   canMoveDown?: boolean
   onLabelChange?: (label: string) => void
   onBranchLengthChange?: (branchLength: number | null) => void
+  onAddMetadata?: (key: string, value: MetadataValue) => void
+  onUpdateMetadata?: (
+    previousKey: string,
+    key: string,
+    value: MetadataValue,
+  ) => void
+  onRemoveMetadata?: (key: string) => void
   onAddChild?: () => void
   onStartMove?: () => void
   onReorder?: (direction: ReorderDirection) => void
@@ -204,6 +213,9 @@ export function NodeDetailsPanel({
   canMoveDown = false,
   onLabelChange,
   onBranchLengthChange,
+  onAddMetadata,
+  onUpdateMetadata,
+  onRemoveMetadata,
   onAddChild,
   onStartMove,
   onReorder,
@@ -267,33 +279,13 @@ export function NodeDetailsPanel({
             </div>
           </dl>
 
-          <section aria-labelledby="node-metadata-heading">
-            <h3
-              id="node-metadata-heading"
-              className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-            >
-              {t('metadata')}
-            </h3>
-            {Object.entries(node.data.metadata).length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('noMetadata')}</p>
-            ) : (
-              <dl className="divide-y rounded-md border bg-background/60">
-                {Object.entries(node.data.metadata).map(([key, value]) => (
-                  <div
-                    key={key}
-                    className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] gap-3 px-3 py-2.5"
-                  >
-                    <dt className="wrap-break-word text-xs font-medium text-muted-foreground">
-                      {key}
-                    </dt>
-                    <dd className="wrap-break-word text-right text-sm">
-                      {String(value)}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-          </section>
+          <MetadataEditor
+            key={`metadata-${node.id}`}
+            metadata={node.data.metadata}
+            onAdd={onAddMetadata}
+            onUpdate={onUpdateMetadata}
+            onRemove={onRemoveMetadata}
+          />
         </div>
       )}
     </div>

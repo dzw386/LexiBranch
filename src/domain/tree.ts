@@ -20,6 +20,19 @@ export class TreeOperationError extends Error {
   }
 }
 
+export type MetadataOperationErrorCode =
+  'duplicate-key' | 'empty-key' | 'missing-key'
+
+export class MetadataOperationError extends Error {
+  readonly code: MetadataOperationErrorCode
+
+  constructor(code: MetadataOperationErrorCode, message: string) {
+    super(message)
+    this.name = 'MetadataOperationError'
+    this.code = code
+  }
+}
+
 function validateBranchLength(branchLength: number | null): void {
   if (
     branchLength !== null &&
@@ -320,4 +333,111 @@ export function setBranchLength(
       [nodeId]: { ...node, branchLength },
     },
   }
+}
+
+function validateMetadataKey(key: string): string {
+  const normalizedKey = key.trim()
+
+  if (normalizedKey === '') {
+    throw new MetadataOperationError(
+      'empty-key',
+      'Metadata keys cannot be empty.',
+    )
+  }
+
+  return normalizedKey
+}
+
+function updateNodeMetadata(
+  tree: PhyloTree,
+  nodeId: string,
+  metadata: Record<string, MetadataValue>,
+): PhyloTree {
+  const node = getNode(tree, nodeId)
+
+  return {
+    ...tree,
+    nodes: {
+      ...tree.nodes,
+      [nodeId]: { ...node, metadata },
+    },
+  }
+}
+
+export function addMetadata(
+  tree: PhyloTree,
+  nodeId: string,
+  key: string,
+  value: MetadataValue,
+): PhyloTree {
+  const node = getNode(tree, nodeId)
+  const normalizedKey = validateMetadataKey(key)
+
+  if (Object.hasOwn(node.metadata, normalizedKey)) {
+    throw new MetadataOperationError(
+      'duplicate-key',
+      `Metadata key "${normalizedKey}" already exists.`,
+    )
+  }
+
+  return updateNodeMetadata(tree, nodeId, {
+    ...node.metadata,
+    [normalizedKey]: value,
+  })
+}
+
+export function updateMetadata(
+  tree: PhyloTree,
+  nodeId: string,
+  previousKey: string,
+  key: string,
+  value: MetadataValue,
+): PhyloTree {
+  const node = getNode(tree, nodeId)
+  const normalizedKey = validateMetadataKey(key)
+
+  if (!Object.hasOwn(node.metadata, previousKey)) {
+    throw new MetadataOperationError(
+      'missing-key',
+      `Metadata key "${previousKey}" does not exist.`,
+    )
+  }
+
+  if (
+    normalizedKey !== previousKey &&
+    Object.hasOwn(node.metadata, normalizedKey)
+  ) {
+    throw new MetadataOperationError(
+      'duplicate-key',
+      `Metadata key "${normalizedKey}" already exists.`,
+    )
+  }
+
+  const metadata = { ...node.metadata }
+  if (normalizedKey !== previousKey) {
+    delete metadata[previousKey]
+  }
+  metadata[normalizedKey] = value
+
+  return updateNodeMetadata(tree, nodeId, metadata)
+}
+
+export function removeMetadata(
+  tree: PhyloTree,
+  nodeId: string,
+  key: string,
+): PhyloTree {
+  const node = getNode(tree, nodeId)
+
+  if (!Object.hasOwn(node.metadata, key)) {
+    throw new MetadataOperationError(
+      'missing-key',
+      `Metadata key "${key}" does not exist.`,
+    )
+  }
+
+  const metadata = { ...node.metadata }
+  delete metadata[key]
+
+  return updateNodeMetadata(tree, nodeId, metadata)
 }

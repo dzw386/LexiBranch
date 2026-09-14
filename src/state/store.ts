@@ -1,16 +1,19 @@
 import { create } from 'zustand'
 import {
   addChild as addChildToTree,
+  addMetadata as addMetadataToTree,
   createNode,
   moveSubtree as moveSubtreeInTree,
+  removeMetadata as removeMetadataFromTree,
   removeSubtree as removeSubtreeFromTree,
   reorderChild as reorderChildInTree,
   setBranchLength as setBranchLengthInTree,
   setLabel as setLabelInTree,
+  updateMetadata as updateMetadataInTree,
   type CreateNodeOptions,
   type ReorderDirection,
 } from '../domain/tree'
-import type { PhyloTree } from '../domain/types'
+import type { MetadataValue, PhyloTree } from '../domain/types'
 
 export type AddChildOptions = Omit<CreateNodeOptions, 'parentId'>
 
@@ -23,6 +26,14 @@ export interface TreeStore {
   removeSubtree: (nodeId: string) => void
   setLabel: (nodeId: string, label: string) => void
   setBranchLength: (nodeId: string, branchLength: number | null) => void
+  addMetadata: (nodeId: string, key: string, value: MetadataValue) => void
+  updateMetadata: (
+    nodeId: string,
+    previousKey: string,
+    key: string,
+    value: MetadataValue,
+  ) => void
+  removeMetadata: (nodeId: string, key: string) => void
   moveSubtree: (nodeId: string, newParentId: string) => void
   reorderChild: (
     parentId: string,
@@ -113,6 +124,24 @@ export const useTreeStore = create<TreeStore>((set) => ({
   setBranchLength: (nodeId, branchLength) =>
     set((state) => ({
       tree: setBranchLengthInTree(state.tree, nodeId, branchLength),
+      selectedNodeId: nodeId,
+    })),
+
+  addMetadata: (nodeId, key, value) =>
+    set((state) => ({
+      tree: addMetadataToTree(state.tree, nodeId, key, value),
+      selectedNodeId: nodeId,
+    })),
+
+  updateMetadata: (nodeId, previousKey, key, value) =>
+    set((state) => ({
+      tree: updateMetadataInTree(state.tree, nodeId, previousKey, key, value),
+      selectedNodeId: nodeId,
+    })),
+
+  removeMetadata: (nodeId, key) =>
+    set((state) => ({
+      tree: removeMetadataFromTree(state.tree, nodeId, key),
       selectedNodeId: nodeId,
     })),
 

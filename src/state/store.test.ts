@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { createEmptyTree, TreeOperationError } from '../domain/tree'
+import {
+  createEmptyTree,
+  MetadataOperationError,
+  TreeOperationError,
+} from '../domain/tree'
 import { useTreeStore } from './store'
 
 function resetStore(): void {
@@ -139,5 +143,42 @@ describe('useTreeStore', () => {
     store.removeSubtree('branch')
 
     expect(useTreeStore.getState().pendingMoveNodeId).toBeNull()
+  })
+
+  it('round-trips typed metadata through the store', () => {
+    const store = useTreeStore.getState()
+    const rootId = store.tree.rootId
+
+    store.addMetadata(rootId, 'iso', 'lxx')
+    store.addMetadata(rootId, 'confidence', 0.98)
+    store.addMetadata(rootId, 'attested', false)
+
+    expect(useTreeStore.getState().tree.nodes[rootId]?.metadata).toEqual({
+      iso: 'lxx',
+      confidence: 0.98,
+      attested: false,
+    })
+
+    store.updateMetadata(rootId, 'iso', 'languageCode', 'lxx')
+    store.removeMetadata(rootId, 'attested')
+
+    expect(useTreeStore.getState().tree.nodes[rootId]?.metadata).toEqual({
+      languageCode: 'lxx',
+      confidence: 0.98,
+    })
+    expect(useTreeStore.getState().selectedNodeId).toBe(rootId)
+  })
+
+  it('rejects duplicate metadata keys without changing the tree', () => {
+    const store = useTreeStore.getState()
+    const rootId = store.tree.rootId
+
+    store.addMetadata(rootId, 'iso', 'lxx')
+    const before = useTreeStore.getState().tree
+
+    expect(() => store.addMetadata(rootId, 'iso', 'pl')).toThrow(
+      MetadataOperationError,
+    )
+    expect(useTreeStore.getState().tree).toBe(before)
   })
 })

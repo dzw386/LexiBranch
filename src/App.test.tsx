@@ -106,8 +106,23 @@ describe('App', () => {
     await screen.findByText('Germanic')
     fireEvent.click(screen.getByText('Germanic'))
 
-    expect(await screen.findByText('West Germanic')).toBeDefined()
+    expect(await screen.findByDisplayValue('West Germanic')).toBeDefined()
     expect(screen.getByText('germanic')).toBeDefined()
+  })
+
+  it('replaces the details form when selection changes', async () => {
+    mountApp()
+
+    await screen.findByText('Germanic')
+    fireEvent.click(screen.getByText('Germanic'))
+    expect(screen.getAllByText('Edit node')).toHaveLength(1)
+
+    fireEvent.click(screen.getByText('English'))
+
+    expect(screen.getAllByText('Edit node')).toHaveLength(1)
+    expect((screen.getByLabelText('Label') as HTMLInputElement).value).toBe(
+      'English',
+    )
   })
 
   it('clears the details panel when clicking the empty canvas', async () => {
@@ -115,7 +130,7 @@ describe('App', () => {
 
     await screen.findByText('Germanic')
     fireEvent.click(screen.getByText('Germanic'))
-    await screen.findByText('West Germanic')
+    await screen.findByDisplayValue('West Germanic')
 
     fireEvent.click(document.querySelector('.react-flow__pane')!)
     await screen.findByText('Select a node to view its details.')
@@ -284,5 +299,41 @@ describe('App', () => {
       'english',
       'german',
     ])
+  })
+
+  it('round-trips typed metadata through the store and updates the node badge', async () => {
+    mountApp()
+
+    await screen.findByText('Germanic')
+    fireEvent.click(screen.getByText('Germanic'))
+
+    fireEvent.change(screen.getByPlaceholderText('New key'), {
+      target: { value: 'confidence' },
+    })
+    fireEvent.change(
+      screen.getByLabelText('Type', { selector: '#new-metadata-type' }),
+      {
+        target: { value: 'number' },
+      },
+    )
+    fireEvent.change(
+      screen.getByLabelText('Value', { selector: '#new-metadata-value' }),
+      {
+        target: { value: '0.98' },
+      },
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Add metadata' }))
+
+    expect(useTreeStore.getState().tree.nodes.germanic?.metadata).toEqual({
+      branch: 'West Germanic',
+      confidence: 0.98,
+    })
+    await waitFor(() => {
+      expect(
+        document.querySelector(
+          '[data-id="germanic"] .phylo-node__metadata-badge',
+        )?.textContent,
+      ).toBe('2')
+    })
   })
 })

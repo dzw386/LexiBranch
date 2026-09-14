@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import {
   addChild,
+  addMetadata,
   createEmptyTree,
   createNode,
   getSubtreeIds,
+  MetadataOperationError,
   moveSubtree,
+  removeMetadata,
   reorderChild,
   removeSubtree,
   setBranchLength,
   setLabel,
   TreeOperationError,
+  updateMetadata,
   type ReorderDirection,
 } from './tree'
 
@@ -451,6 +455,64 @@ describe('setBranchLength', () => {
   it('rejects an unknown node', () => {
     expect(() => setBranchLength(createEmptyTree(), 'missing', 1)).toThrow(
       'does not exist',
+    )
+  })
+})
+
+describe('metadata operations', () => {
+  it('adds, updates, and removes metadata without mutating the input', () => {
+    const tree = createTreeWithSubtree()
+    const original = structuredClone(tree)
+
+    const withMetadata = addMetadata(tree, 'leaf', 'iso', 'lxx')
+    const withUpdatedMetadata = updateMetadata(
+      withMetadata,
+      'leaf',
+      'iso',
+      'confidence',
+      0.98,
+    )
+    const result = removeMetadata(withUpdatedMetadata, 'leaf', 'confidence')
+
+    expect(withMetadata.nodes.leaf?.metadata).toEqual({ iso: 'lxx' })
+    expect(withUpdatedMetadata.nodes.leaf?.metadata).toEqual({
+      confidence: 0.98,
+    })
+    expect(result.nodes.leaf?.metadata).toEqual({})
+    expect(tree).toEqual(original)
+    expect(withMetadata.nodes.leaf).not.toBe(tree.nodes.leaf)
+    expect(withUpdatedMetadata.nodes.leaf).not.toBe(withMetadata.nodes.leaf)
+    expect(result.nodes.leaf).not.toBe(withUpdatedMetadata.nodes.leaf)
+  })
+
+  it('preserves boolean metadata values', () => {
+    const tree = createTreeWithSubtree()
+
+    const result = addMetadata(tree, 'leaf', 'attested', false)
+
+    expect(result.nodes.leaf?.metadata).toEqual({ attested: false })
+  })
+
+  it('rejects duplicate and empty keys', () => {
+    const tree = addMetadata(createTreeWithSubtree(), 'leaf', 'iso', 'lxx')
+
+    expect(() => addMetadata(tree, 'leaf', 'iso', 'pl')).toThrow(
+      MetadataOperationError,
+    )
+    expect(() => updateMetadata(tree, 'leaf', 'iso', '  ', 'pl')).toThrow(
+      MetadataOperationError,
+    )
+    expect(() => updateMetadata(tree, 'leaf', 'iso', 'iso', 'pl')).not.toThrow()
+  })
+
+  it('rejects removing or updating a missing key', () => {
+    const tree = createTreeWithSubtree()
+
+    expect(() => removeMetadata(tree, 'leaf', 'missing')).toThrow(
+      MetadataOperationError,
+    )
+    expect(() => updateMetadata(tree, 'leaf', 'missing', 'iso', 'lxx')).toThrow(
+      MetadataOperationError,
     )
   })
 })
