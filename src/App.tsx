@@ -5,9 +5,10 @@ import {
   ReactFlow,
   type NodeChange,
   type NodeSelectionChange,
+  type ReactFlowInstance,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Download, Plus, Upload } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PhyloEdge } from './components/canvas/PhyloEdge'
@@ -21,12 +22,24 @@ import {
 } from './domain/tree'
 import type { MetadataValue } from './domain/types'
 import { cn } from './lib/utils'
-import { layoutPhyloTree, type PhyloFlowNode } from './layout/layout'
+import {
+  layoutPhyloTree,
+  type PhyloFlowEdge,
+  type PhyloFlowNode,
+} from './layout/layout'
 import { useTreeStore } from './state/store'
 
 const nodeTypes = { phylo: PhyloNode }
 const edgeTypes = { phylo: PhyloEdge }
 const readOnlyEdgeOptions = { selectable: false, reconnectable: false }
+const MIN_CANVAS_ZOOM = 0.2
+const MAX_CANVAS_ZOOM = 1.5
+const FIT_VIEW_OPTIONS = {
+  padding: 0.2,
+  minZoom: MIN_CANVAS_ZOOM,
+  maxZoom: MAX_CANVAS_ZOOM,
+  duration: 200,
+}
 
 interface NodeMeasurement {
   width: number
@@ -54,11 +67,28 @@ function App() {
   const [nodeMeasurements, setNodeMeasurements] = useState<
     Record<string, NodeMeasurement>
   >({})
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<
+    PhyloFlowNode,
+    PhyloFlowEdge
+  > | null>(null)
 
   const { nodes: layoutNodes, edges } = useMemo(
     () => layoutPhyloTree(tree),
     [tree],
   )
+  const structureKey = useMemo(
+    () =>
+      JSON.stringify({
+        rootId: tree.rootId,
+        nodes: Object.values(tree.nodes).map(({ id, parentId, childIds }) => ({
+          id,
+          parentId,
+          childIds,
+        })),
+      }),
+    [tree],
+  )
+  const previousStructureKey = useRef(structureKey)
   const measuredLayoutNodes = useMemo(
     () =>
       layoutNodes.map((node) => {
@@ -75,6 +105,22 @@ function App() {
       ),
     [measuredLayoutNodes, selectedNodeId],
   )
+
+  useEffect(() => {
+    if (
+      reactFlowInstance === null ||
+      previousStructureKey.current === structureKey
+    ) {
+      return
+    }
+
+    previousStructureKey.current = structureKey
+    const timeoutId = window.setTimeout(() => {
+      void reactFlowInstance.fitView(FIT_VIEW_OPTIONS)
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [reactFlowInstance, structureKey])
 
   const selectedNode =
     layoutNodes.find((node) => node.id === selectedNodeId) ?? null
@@ -361,6 +407,7 @@ function App() {
           <ReactFlow
             nodes={nodes}
             edges={edges}
+            onInit={setReactFlowInstance}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             defaultEdgeOptions={readOnlyEdgeOptions}
@@ -382,6 +429,9 @@ function App() {
             selectionKeyCode={null}
             multiSelectionKeyCode={null}
             fitView
+            fitViewOptions={FIT_VIEW_OPTIONS}
+            minZoom={MIN_CANVAS_ZOOM}
+            maxZoom={MAX_CANVAS_ZOOM}
             panOnDrag
             zoomOnScroll
             zoomOnPinch
