@@ -53,6 +53,12 @@ export function createNode({
 }: CreateNodeOptions = {}): TreeNodeData {
   validateBranchLength(branchLength)
 
+  if (parentId === null && branchLength !== null) {
+    throw new RangeError(
+      'The root node cannot have a branch length.',
+    )
+  }
+
   return {
     id,
     parentId,
