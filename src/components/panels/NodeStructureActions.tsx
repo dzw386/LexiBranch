@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, MoveRight, Plus, Trash2 } from 'lucide-react'
+import { Move, MoveDown, MoveUp, Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { ReorderDirection } from '../../domain/tree'
 import { Button } from '../ui/button'
@@ -72,7 +72,7 @@ export function NodeStructureActions({
         disabled={isRoot}
         aria-label={t('moveSubtree')}
       >
-        <MoveRight aria-hidden="true" />
+        <Move aria-hidden="true" />
         {t('moveSubtree')}
       </Button>
       <Button
@@ -84,7 +84,7 @@ export function NodeStructureActions({
         disabled={!canMoveUp}
         aria-label={t('reorderUp')}
       >
-        <ArrowUp aria-hidden="true" />
+        <MoveUp aria-hidden="true" />
         {t('reorderUp')}
       </Button>
       <Button
@@ -96,7 +96,7 @@ export function NodeStructureActions({
         disabled={!canMoveDown}
         aria-label={t('reorderDown')}
       >
-        <ArrowDown aria-hidden="true" />
+        <MoveDown aria-hidden="true" />
         {t('reorderDown')}
       </Button>
       <Button
