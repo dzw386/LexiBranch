@@ -54,9 +54,7 @@ export function createNode({
   validateBranchLength(branchLength)
 
   if (parentId === null && branchLength !== null) {
-    throw new RangeError(
-      'The root node cannot have a branch length.',
-    )
+    throw new RangeError('The root node cannot have a branch length.')
   }
 
   return {

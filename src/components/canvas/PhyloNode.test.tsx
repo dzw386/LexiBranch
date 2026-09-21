@@ -13,10 +13,7 @@ const node: PhyloFlowNode = {
   targetPosition: Position.Left,
 }
 
-function renderNode(
-  data: PhyloFlowNode['data'],
-  selected = false,
-): string {
+function renderNode(data: PhyloFlowNode['data'], selected = false): string {
   return renderToStaticMarkup(
     <ReactFlow
       nodes={[{ ...node, data, selected }]}

@@ -34,4 +34,5 @@ class DOMMatrixReadOnlyMock {
 globalThis.DOMMatrixReadOnly =
   DOMMatrixReadOnlyMock as unknown as typeof DOMMatrixReadOnly
 
-globalThis.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver
+globalThis.ResizeObserver =
+  ResizeObserverMock as unknown as typeof ResizeObserver

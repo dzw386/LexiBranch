@@ -77,12 +77,10 @@ describe('createNode', () => {
   })
 
   it('rejects a branch length on the root node', () => {
-    expect(() =>
-      createNode({ parentId: null, branchLength: 1 }),
-    ).toThrow(RangeError)
-    expect(() =>
-      createNode({ branchLength: 0 }),
-    ).toThrow(RangeError)
+    expect(() => createNode({ parentId: null, branchLength: 1 })).toThrow(
+      RangeError,
+    )
+    expect(() => createNode({ branchLength: 0 })).toThrow(RangeError)
   })
 })
 
