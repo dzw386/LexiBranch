@@ -330,6 +330,7 @@ function App() {
             canMoveDown={
               siblingIndex >= 0 && siblingIndex < siblingIds.length - 1
             }
+            isMoveMode={pendingMoveNodeId !== null}
             onLabelChange={(label) => {
               if (selectedNodeId !== null) {
                 setLabel(selectedNodeId, label)

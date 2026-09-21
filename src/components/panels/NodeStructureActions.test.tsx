@@ -124,4 +124,36 @@ describe('NodeStructureActions', () => {
       'permanently delete “English” (1 node)',
     )
   })
+
+  it('disables all buttons when disabled is true', () => {
+    const callbacks = renderActions({ disabled: true })
+
+    expect(
+      screen
+        .getByRole('button', { name: 'Add child' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Move subtree' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen.getByRole('button', { name: 'Move up' }).hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Move down' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Delete subtree' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    expect(callbacks.onAddChild).not.toHaveBeenCalled()
+    expect(callbacks.onStartMove).not.toHaveBeenCalled()
+    expect(callbacks.onReorder).not.toHaveBeenCalled()
+    expect(callbacks.onRemoveSubtree).not.toHaveBeenCalled()
+  })
 })

@@ -18,6 +18,7 @@ export interface NodeStructureActionsProps {
   isRoot: boolean
   canMoveUp: boolean
   canMoveDown: boolean
+  disabled?: boolean
   onAddChild: () => void
   onStartMove: () => void
   onReorder: (direction: ReorderDirection) => void
@@ -30,6 +31,7 @@ export function NodeStructureActions({
   isRoot,
   canMoveUp,
   canMoveDown,
+  disabled = false,
   onAddChild,
   onStartMove,
   onReorder,
@@ -58,6 +60,7 @@ export function NodeStructureActions({
         size="sm"
         className="w-full"
         onClick={onAddChild}
+        disabled={disabled}
         aria-label={t('addChild')}
       >
         <Plus aria-hidden="true" />
@@ -69,7 +72,7 @@ export function NodeStructureActions({
         size="sm"
         className="w-full"
         onClick={onStartMove}
-        disabled={isRoot}
+        disabled={isRoot || disabled}
         aria-label={t('moveSubtree')}
       >
         <Move aria-hidden="true" />
@@ -81,7 +84,7 @@ export function NodeStructureActions({
         size="sm"
         className="w-full"
         onClick={() => onReorder('up')}
-        disabled={!canMoveUp}
+        disabled={!canMoveUp || disabled}
         aria-label={t('reorderUp')}
       >
         <MoveUp aria-hidden="true" />
@@ -93,7 +96,7 @@ export function NodeStructureActions({
         size="sm"
         className="w-full"
         onClick={() => onReorder('down')}
-        disabled={!canMoveDown}
+        disabled={!canMoveDown || disabled}
         aria-label={t('reorderDown')}
       >
         <MoveDown aria-hidden="true" />
@@ -105,7 +108,7 @@ export function NodeStructureActions({
         size="sm"
         className="w-full"
         onClick={() => setConfirmOpen(true)}
-        disabled={isRoot}
+        disabled={isRoot || disabled}
         aria-label={t('deleteSubtree')}
       >
         <Trash2 aria-hidden="true" />

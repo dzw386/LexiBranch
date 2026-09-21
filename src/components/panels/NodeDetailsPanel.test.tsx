@@ -232,4 +232,133 @@ describe('NodeDetailsPanel', () => {
 
     expect(screen.getByText('Metadata keys must be unique.')).toBeDefined()
   })
+
+  it('disables all editing controls when isMoveMode is true', () => {
+    render(
+      <I18nextProvider i18n={i18n}>
+        <NodeDetailsPanel
+          node={node}
+          branchLength={0.8}
+          isRoot={false}
+          canMoveUp
+          canMoveDown
+          isMoveMode
+          onLabelChange={() => undefined}
+          onBranchLengthChange={() => undefined}
+          onAddMetadata={() => undefined}
+          onUpdateMetadata={() => undefined}
+          onRemoveMetadata={() => undefined}
+          onAddChild={() => undefined}
+          onStartMove={() => undefined}
+          onReorder={() => undefined}
+          onRemoveSubtree={() => undefined}
+        />
+      </I18nextProvider>,
+    )
+
+    expect(screen.getByLabelText('Label').hasAttribute('disabled')).toBe(true)
+    expect(
+      screen.getByLabelText('Branch length').hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Save changes' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Add child' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Move subtree' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen.getByRole('button', { name: 'Move up' }).hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Move down' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Delete subtree' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen.getByPlaceholderText('New key').hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Add metadata' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+  })
+
+  it('enables all editing controls when isMoveMode is false', () => {
+    render(
+      <I18nextProvider i18n={i18n}>
+        <NodeDetailsPanel
+          node={node}
+          branchLength={0.8}
+          isRoot={false}
+          canMoveUp
+          canMoveDown
+          onLabelChange={() => undefined}
+          onBranchLengthChange={() => undefined}
+          onAddMetadata={() => undefined}
+          onUpdateMetadata={() => undefined}
+          onRemoveMetadata={() => undefined}
+          onAddChild={() => undefined}
+          onStartMove={() => undefined}
+          onReorder={() => undefined}
+          onRemoveSubtree={() => undefined}
+        />
+      </I18nextProvider>,
+    )
+
+    expect(screen.getByLabelText('Label').hasAttribute('disabled')).toBe(false)
+    expect(
+      screen.getByLabelText('Branch length').hasAttribute('disabled'),
+    ).toBe(false)
+    expect(
+      screen
+        .getByRole('button', { name: 'Save changes' })
+        .hasAttribute('disabled'),
+    ).toBe(false)
+    expect(
+      screen
+        .getByRole('button', { name: 'Add child' })
+        .hasAttribute('disabled'),
+    ).toBe(false)
+    expect(
+      screen
+        .getByRole('button', { name: 'Move subtree' })
+        .hasAttribute('disabled'),
+    ).toBe(false)
+    expect(
+      screen.getByRole('button', { name: 'Move up' }).hasAttribute('disabled'),
+    ).toBe(false)
+    expect(
+      screen
+        .getByRole('button', { name: 'Move down' })
+        .hasAttribute('disabled'),
+    ).toBe(false)
+    expect(
+      screen
+        .getByRole('button', { name: 'Delete subtree' })
+        .hasAttribute('disabled'),
+    ).toBe(false)
+    expect(
+      screen.getByPlaceholderText('New key').hasAttribute('disabled'),
+    ).toBe(false)
+    expect(
+      screen
+        .getByRole('button', { name: 'Add metadata' })
+        .hasAttribute('disabled'),
+    ).toBe(false)
+  })
 })

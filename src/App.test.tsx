@@ -336,4 +336,63 @@ describe('App', () => {
       ).toBe('2')
     })
   })
+
+  it('disables sidebar editing controls while pendingMoveNodeId is set', async () => {
+    mountApp()
+
+    await screen.findByText('English')
+    fireEvent.click(screen.getByText('English'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Move subtree' }))
+
+    expect(await screen.findByRole('status')).toBeDefined()
+    expect(screen.getByLabelText('Label').hasAttribute('disabled')).toBe(true)
+    expect(
+      screen.getByLabelText('Branch length').hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Save changes' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Add child' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Move subtree' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen.getByRole('button', { name: 'Move up' }).hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Move down' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Delete subtree' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen.getByPlaceholderText('New key').hasAttribute('disabled'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Add metadata' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+
+    fireEvent.click(screen.getByText('Slavic'))
+    await waitFor(() => expect(screen.queryByRole('status')).toBeNull())
+    expect(screen.getByLabelText('Label').hasAttribute('disabled')).toBe(false)
+    expect(
+      screen
+        .getByRole('button', { name: 'Add child' })
+        .hasAttribute('disabled'),
+    ).toBe(false)
+  })
 })

@@ -16,6 +16,7 @@ export interface NodeDetailsPanelProps {
   subtreeSize?: number
   canMoveUp?: boolean
   canMoveDown?: boolean
+  isMoveMode?: boolean
   onLabelChange?: (label: string) => void
   onBranchLengthChange?: (branchLength: number | null) => void
   onAddMetadata?: (key: string, value: MetadataValue) => void
@@ -61,6 +62,7 @@ interface NodeEditFormProps {
   label: string
   branchLength: number | null
   isRoot: boolean
+  disabled?: boolean
   onLabelChange?: (label: string) => void
   onBranchLengthChange?: (branchLength: number | null) => void
 }
@@ -69,6 +71,7 @@ function NodeEditForm({
   label: initialLabel,
   branchLength: initialBranchLength,
   isRoot,
+  disabled = false,
   onLabelChange,
   onBranchLengthChange,
 }: NodeEditFormProps) {
@@ -133,6 +136,7 @@ function NodeEditForm({
           type="text"
           placeholder={t('unnamedNode')}
           value={label}
+          disabled={disabled}
           onChange={(event) => handleLabelInput(event.currentTarget.value)}
           aria-invalid={errors.label !== undefined}
           aria-describedby={
@@ -164,7 +168,7 @@ function NodeEditForm({
           inputMode="decimal"
           placeholder={t('notSpecified')}
           value={branchLength}
-          disabled={isRoot}
+          disabled={isRoot || disabled}
           onChange={(event) =>
             handleBranchLengthInput(event.currentTarget.value)
           }
@@ -197,7 +201,7 @@ function NodeEditForm({
         ) : null}
       </div>
 
-      <Button type="submit" size="sm" className="w-full">
+      <Button type="submit" size="sm" className="w-full" disabled={disabled}>
         {t('saveChanges')}
       </Button>
     </form>
@@ -211,6 +215,7 @@ export function NodeDetailsPanel({
   subtreeSize = 1,
   canMoveUp = false,
   canMoveDown = false,
+  isMoveMode = false,
   onLabelChange,
   onBranchLengthChange,
   onAddMetadata,
@@ -250,6 +255,7 @@ export function NodeDetailsPanel({
             label={node.data.label}
             branchLength={branchLength}
             isRoot={isRoot}
+            disabled={isMoveMode}
             onLabelChange={onLabelChange}
             onBranchLengthChange={onBranchLengthChange}
           />
@@ -261,6 +267,7 @@ export function NodeDetailsPanel({
               isRoot={isRoot}
               canMoveUp={canMoveUp}
               canMoveDown={canMoveDown}
+              disabled={isMoveMode}
               onAddChild={onAddChild}
               onStartMove={onStartMove}
               onReorder={onReorder}
@@ -282,6 +289,7 @@ export function NodeDetailsPanel({
           <MetadataEditor
             key={`metadata-${node.id}`}
             metadata={node.data.metadata}
+            disabled={isMoveMode}
             onAdd={onAddMetadata}
             onUpdate={onUpdateMetadata}
             onRemove={onRemoveMetadata}

@@ -10,6 +10,7 @@ type MetadataValidationError =
 
 export interface MetadataEditorProps {
   metadata: Record<string, MetadataValue>
+  disabled?: boolean
   onAdd?: (key: string, value: MetadataValue) => void
   onUpdate?: (previousKey: string, key: string, value: MetadataValue) => void
   onRemove?: (key: string) => void
@@ -19,6 +20,7 @@ interface MetadataEntryRowProps {
   metadataKey: string
   value: MetadataValue
   existingKeys: string[]
+  disabled?: boolean
   onUpdate?: MetadataEditorProps['onUpdate']
   onRemove?: MetadataEditorProps['onRemove']
 }
@@ -73,6 +75,7 @@ function MetadataEntryRow({
   metadataKey,
   value,
   existingKeys,
+  disabled = false,
   onUpdate,
   onRemove,
 }: MetadataEntryRowProps) {
@@ -127,6 +130,7 @@ function MetadataEntryRow({
             id={keyId}
             type="text"
             value={key}
+            disabled={disabled}
             onChange={(event) => {
               setKey(event.currentTarget.value)
               setError(undefined)
@@ -135,7 +139,7 @@ function MetadataEntryRow({
               error === 'metadataKeyRequired' ||
               error === 'metadataDuplicateKey'
             }
-            className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
           />
           <div className="flex shrink-0 gap-1">
             <Button
@@ -145,6 +149,7 @@ function MetadataEntryRow({
               className="size-7 p-1"
               aria-label={`${t('saveMetadata')}: ${metadataKey}`}
               title={t('saveMetadata')}
+              disabled={disabled}
               onClick={handleSave}
             >
               <Check aria-hidden="true" />
@@ -156,6 +161,7 @@ function MetadataEntryRow({
               className="size-7 p-1"
               aria-label={`${t('removeMetadata')}: ${metadataKey}`}
               title={t('removeMetadata')}
+              disabled={disabled}
               onClick={() => onRemove?.(metadataKey)}
             >
               <Trash2 aria-hidden="true" />
@@ -173,10 +179,11 @@ function MetadataEntryRow({
             <select
               id={`${keyId}-type`}
               value={type}
+              disabled={disabled}
               onChange={(event) =>
                 handleTypeChange(event.currentTarget.value as MetadataType)
               }
-              className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-1 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-1 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
             >
               <option value="string">{t('metadataTypeString')}</option>
               <option value="number">{t('metadataTypeNumber')}</option>
@@ -194,11 +201,12 @@ function MetadataEntryRow({
               <select
                 id={valueId}
                 value={rawValue}
+                disabled={disabled}
                 onChange={(event) => {
                   setRawValue(event.currentTarget.value)
                   setError(undefined)
                 }}
-                className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-1 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-1 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <option value="true">{t('trueValue')}</option>
                 <option value="false">{t('falseValue')}</option>
@@ -209,12 +217,13 @@ function MetadataEntryRow({
                 type={type === 'number' ? 'number' : 'text'}
                 step={type === 'number' ? 'any' : undefined}
                 value={rawValue}
+                disabled={disabled}
                 onChange={(event) => {
                   setRawValue(event.currentTarget.value)
                   setError(undefined)
                 }}
                 aria-invalid={error === 'metadataNumberInvalid'}
-                className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
               />
             )}
           </div>
@@ -231,10 +240,15 @@ function MetadataEntryRow({
 
 interface MetadataAddFormProps {
   existingKeys: string[]
+  disabled?: boolean
   onAdd?: MetadataEditorProps['onAdd']
 }
 
-function MetadataAddForm({ existingKeys, onAdd }: MetadataAddFormProps) {
+function MetadataAddForm({
+  existingKeys,
+  disabled = false,
+  onAdd,
+}: MetadataAddFormProps) {
   const { t } = useTranslation()
   const [key, setKey] = useState('')
   const [type, setType] = useState<MetadataType>('string')
@@ -279,6 +293,7 @@ function MetadataAddForm({ existingKeys, onAdd }: MetadataAddFormProps) {
             type="text"
             placeholder={t('metadataKeyPlaceholder')}
             value={key}
+            disabled={disabled}
             onChange={(event) => {
               setKey(event.currentTarget.value)
               setError(undefined)
@@ -287,7 +302,7 @@ function MetadataAddForm({ existingKeys, onAdd }: MetadataAddFormProps) {
               error === 'metadataKeyRequired' ||
               error === 'metadataDuplicateKey'
             }
-            className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
           />
         </div>
         <div>
@@ -297,6 +312,7 @@ function MetadataAddForm({ existingKeys, onAdd }: MetadataAddFormProps) {
           <select
             id="new-metadata-type"
             value={type}
+            disabled={disabled}
             onChange={(event) => {
               const nextType = event.currentTarget.value as MetadataType
               setType(nextType)
@@ -305,7 +321,7 @@ function MetadataAddForm({ existingKeys, onAdd }: MetadataAddFormProps) {
               }
               setError(undefined)
             }}
-            className="h-8 w-full rounded-md border border-input bg-background px-1 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="h-8 w-full rounded-md border border-input bg-background px-1 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
           >
             <option value="string">{t('metadataTypeString')}</option>
             <option value="number">{t('metadataTypeNumber')}</option>
@@ -321,11 +337,12 @@ function MetadataAddForm({ existingKeys, onAdd }: MetadataAddFormProps) {
           <select
             id="new-metadata-value"
             value={rawValue}
+            disabled={disabled}
             onChange={(event) => {
               setRawValue(event.currentTarget.value)
               setError(undefined)
             }}
-            className="h-8 w-full rounded-md border border-input bg-background px-1 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="h-8 w-full rounded-md border border-input bg-background px-1 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
           >
             <option value="true">{t('trueValue')}</option>
             <option value="false">{t('falseValue')}</option>
@@ -337,12 +354,13 @@ function MetadataAddForm({ existingKeys, onAdd }: MetadataAddFormProps) {
             step={type === 'number' ? 'any' : undefined}
             placeholder={t('metadataValuePlaceholder')}
             value={rawValue}
+            disabled={disabled}
             onChange={(event) => {
               setRawValue(event.currentTarget.value)
               setError(undefined)
             }}
             aria-invalid={error === 'metadataNumberInvalid'}
-            className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
           />
         )}
       </div>
@@ -351,7 +369,13 @@ function MetadataAddForm({ existingKeys, onAdd }: MetadataAddFormProps) {
           {t(error)}
         </p>
       ) : null}
-      <Button type="submit" variant="outline" size="sm" className="w-full">
+      <Button
+        type="submit"
+        variant="outline"
+        size="sm"
+        className="w-full"
+        disabled={disabled}
+      >
         <Plus aria-hidden="true" />
         {t('addMetadata')}
       </Button>
@@ -361,6 +385,7 @@ function MetadataAddForm({ existingKeys, onAdd }: MetadataAddFormProps) {
 
 export function MetadataEditor({
   metadata,
+  disabled = false,
   onAdd,
   onUpdate,
   onRemove,
@@ -398,6 +423,7 @@ export function MetadataEditor({
                   metadataKey={key}
                   value={value}
                   existingKeys={existingKeys}
+                  disabled={disabled}
                   onUpdate={onUpdate}
                   onRemove={onRemove}
                 />
@@ -406,7 +432,11 @@ export function MetadataEditor({
           </table>
         </div>
       )}
-      <MetadataAddForm existingKeys={existingKeys} onAdd={onAdd} />
+      <MetadataAddForm
+        existingKeys={existingKeys}
+        disabled={disabled}
+        onAdd={onAdd}
+      />
     </section>
   )
 }
