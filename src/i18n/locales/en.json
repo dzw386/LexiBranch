@@ -20,7 +20,7 @@
   "unnamedNode": "Unnamed node",
   "nodeId": "Node ID",
   "branchLength": "Branch length",
-  "branchLengthInvalid": "Branch length must be a number greater than or equal to 0.",
+  "branchLengthInvalid": "Branch length must be a number between 0 and 1,000,000.",
   "rootBranchLengthNotApplicable": "The root node has no branch length.",
   "saveChanges": "Save changes",
   "notSpecified": "Not specified",

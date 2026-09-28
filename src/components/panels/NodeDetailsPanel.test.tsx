@@ -122,11 +122,69 @@ describe('NodeDetailsPanel', () => {
     expect(screen.getByText('Label cannot be empty.')).toBeDefined()
     expect(
       screen.getByText(
-        'Branch length must be a number greater than or equal to 0.',
+        'Branch length must be a number between 0 and 1,000,000.',
       ),
     ).toBeDefined()
     expect(labelChanges).toEqual([])
     expect(branchLengthChanges).toEqual([])
+  })
+
+  it('rejects branch lengths above the sanity cap', () => {
+    const branchLengthChanges: Array<number | null> = []
+
+    render(
+      <I18nextProvider i18n={i18n}>
+        <NodeDetailsPanel
+          node={node}
+          branchLength={0.8}
+          onBranchLengthChange={(length) => branchLengthChanges.push(length)}
+        />
+      </I18nextProvider>,
+    )
+
+    expect(screen.getByLabelText('Branch length').getAttribute('max')).toBe(
+      '1000000',
+    )
+
+    for (const invalid of ['1000000.5', '1e21', '999999999999999900000']) {
+      fireEvent.change(screen.getByLabelText('Branch length'), {
+        target: { value: invalid },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+      expect(
+        screen.getByText(
+          'Branch length must be a number between 0 and 1,000,000.',
+        ),
+      ).toBeDefined()
+    }
+
+    expect(branchLengthChanges).toEqual([])
+  })
+
+  it('accepts branch lengths up to the sanity cap', () => {
+    const branchLengthChanges: Array<number | null> = []
+
+    render(
+      <I18nextProvider i18n={i18n}>
+        <NodeDetailsPanel
+          node={node}
+          branchLength={0.8}
+          onBranchLengthChange={(length) => branchLengthChanges.push(length)}
+        />
+      </I18nextProvider>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Branch length'), {
+      target: { value: '0' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    fireEvent.change(screen.getByLabelText('Branch length'), {
+      target: { value: '1000000' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    expect(branchLengthChanges).toEqual([0, 1000000])
   })
 
   it('holds valid edits until save and treats an empty length as unspecified', () => {

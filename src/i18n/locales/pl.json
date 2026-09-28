@@ -20,7 +20,7 @@
   "unnamedNode": "Węzeł bez nazwy",
   "nodeId": "Identyfikator węzła",
   "branchLength": "Długość gałęzi",
-  "branchLengthInvalid": "Długość gałęzi musi być liczbą większą lub równą 0.",
+  "branchLengthInvalid": "Długość gałęzi musi być liczbą z przedziału od 0 do 1 000 000.",
   "rootBranchLengthNotApplicable": "Węzeł główny nie ma długości gałęzi.",
   "saveChanges": "Zapisz zmiany",
   "notSpecified": "Nie określono",

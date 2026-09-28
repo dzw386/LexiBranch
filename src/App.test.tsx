@@ -211,7 +211,7 @@ describe('App', () => {
     expect(screen.getByText('Label cannot be empty.')).toBeDefined()
     expect(
       screen.getByText(
-        'Branch length must be a number greater than or equal to 0.',
+        'Branch length must be a number between 0 and 1,000,000.',
       ),
     ).toBeDefined()
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))

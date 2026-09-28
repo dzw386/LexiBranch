@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MetadataValue } from '../../domain/types'
 import type { ReorderDirection } from '../../domain/tree'
+import { MAX_BRANCH_LENGTH } from '../../lib/branchLength'
 import type { PhyloFlowNode } from '../../layout/layout'
 import { Button } from '../ui/button'
 import { MetadataEditor } from './MetadataEditor'
@@ -51,7 +52,11 @@ function parseBranchLength(value: string): {
 
   const branchLength = Number(value)
 
-  if (!Number.isFinite(branchLength) || branchLength < 0) {
+  if (
+    !Number.isFinite(branchLength) ||
+    branchLength < 0 ||
+    branchLength > MAX_BRANCH_LENGTH
+  ) {
     return { value: null, error: 'branchLengthInvalid' }
   }
 
@@ -164,6 +169,7 @@ function NodeEditForm({
           name="branchLength"
           type="number"
           min="0"
+          max={MAX_BRANCH_LENGTH}
           step="any"
           inputMode="decimal"
           placeholder={t('notSpecified')}
