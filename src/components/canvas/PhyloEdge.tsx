@@ -1,40 +1,30 @@
 import { memo } from 'react'
-import {
-  BaseEdge,
-  EdgeLabelRenderer,
-  getSmoothStepPath,
-  type EdgeProps,
-} from '@xyflow/react'
+import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react'
+import { formatBranchLength } from '../../lib/branchLength'
 import type { PhyloFlowEdge } from '../../layout/layout'
+
+const BRANCH_LABEL_LINE_OFFSET = 18
 
 function PhyloEdgeComponent({
   id,
   markerEnd,
   markerStart,
   selected,
-  sourcePosition,
   sourceX,
   sourceY,
   style,
-  targetPosition,
   targetX,
   targetY,
   data,
 }: EdgeProps<PhyloFlowEdge>) {
-  const [path, labelX, labelY] = getSmoothStepPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-    borderRadius: 0,
-  })
+  const path = `M ${sourceX},${sourceY} L ${sourceX},${targetY} L ${targetX},${targetY}`
   const branchLength = data?.branchLength
   const branchLengthLabel =
     branchLength === null || branchLength === undefined
       ? undefined
-      : String(branchLength)
+      : formatBranchLength(branchLength)
+  const branchLabelX = data?.branchLabelX ?? (sourceX + targetX) / 2
+  const branchLabelY = targetY - BRANCH_LABEL_LINE_OFFSET
 
   return (
     <>
@@ -53,16 +43,25 @@ function PhyloEdgeComponent({
         markerEnd={markerEnd}
       />
       {branchLengthLabel !== undefined ? (
-        <EdgeLabelRenderer>
-          <div
-            className="phylo-edge__label nodrag nopan"
-            style={{
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-            }}
-          >
-            {branchLengthLabel}
-          </div>
-        </EdgeLabelRenderer>
+        <>
+          <line
+            className="phylo-edge__label-stem"
+            x1={branchLabelX}
+            y1={branchLabelY}
+            x2={branchLabelX}
+            y2={targetY}
+          />
+          <EdgeLabelRenderer>
+            <div
+              className="phylo-edge__label nodrag nopan"
+              style={{
+                transform: `translate(-50%, -100%) translate(${branchLabelX}px, ${branchLabelY}px)`,
+              }}
+            >
+              {branchLengthLabel}
+            </div>
+          </EdgeLabelRenderer>
+        </>
       ) : null}
     </>
   )
@@ -84,6 +83,7 @@ function areEdgePropsEqual(
     previous.markerStart === next.markerStart &&
     previous.markerEnd === next.markerEnd &&
     previous.data?.branchLength === next.data?.branchLength &&
+    previous.data?.branchLabelX === next.data?.branchLabelX &&
     previous.style === next.style
   )
 }

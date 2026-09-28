@@ -20,9 +20,9 @@ const edgeProps: EdgeProps<PhyloFlowEdge> = {
   sourceY: 50,
   targetX: 240,
   targetY: 0,
-  sourcePosition: Position.Right,
+  sourcePosition: Position.Left,
   targetPosition: Position.Left,
-  data: { branchLength: 1.5 },
+  data: { branchLength: 1.5, branchLabelX: 192 },
   animated: false,
   selected: false,
   selectable: true,
@@ -40,11 +40,11 @@ const flowNodes = [
     handles: [
       {
         type: 'source' as const,
-        position: Position.Right,
-        x: 100,
+        position: Position.Left,
+        x: 0,
         y: 20,
-        width: 1,
-        height: 1,
+        width: 0,
+        height: 0,
       },
     ],
   },
@@ -61,8 +61,8 @@ const flowNodes = [
         position: Position.Left,
         x: 0,
         y: 20,
-        width: 1,
-        height: 1,
+        width: 0,
+        height: 0,
       },
     ],
   },
@@ -71,15 +71,18 @@ const flowNodes = [
 describe('PhyloEdge', () => {
   afterEach(cleanup)
 
-  it('renders a sharp stepped path', () => {
+  it('draws a vertical line at the parent anchor and a horizontal branch', () => {
     const markup = renderToStaticMarkup(
       <ReactFlowProvider>
-        <PhyloEdge {...edgeProps} data={{ branchLength: null }} />
+        <PhyloEdge
+          {...edgeProps}
+          data={{ branchLength: null, branchLabelX: 192 }}
+        />
       </ReactFlowProvider>,
     )
 
     expect(markup).toContain('phylo-edge')
-    expect(markup).toContain('L')
+    expect(markup).toContain('M 0,50 L 0,0 L 240,0')
   })
 
   it('renders branch-length labels in the edge label layer', async () => {
@@ -95,16 +98,42 @@ describe('PhyloEdge', () => {
     const label = await screen.findByText('1.5')
 
     expect(label.classList.contains('phylo-edge__label')).toBe(true)
+    expect(label.style.transform).toBe(
+      'translate(-50%, -100%) translate(192px, 2px)',
+    )
     expect(document.querySelector('.phylo-edge')).not.toBeNull()
+    expect(document.querySelector('.phylo-edge__label-stem')).not.toBeNull()
+  })
+
+  it('formats long decimals in branch-length labels', async () => {
+    render(
+      <ReactFlow
+        nodes={flowNodes}
+        edges={[
+          {
+            ...edgeProps,
+            data: { branchLength: 0.1111111111111111, branchLabelX: 192 },
+          },
+        ]}
+        nodeTypes={{ phylo: PhyloNode }}
+        edgeTypes={{ phylo: PhyloEdge }}
+      />,
+    )
+
+    await screen.findByText('0.111')
   })
 
   it('omits the label when branch length is not present', () => {
     const markup = renderToStaticMarkup(
       <ReactFlowProvider>
-        <PhyloEdge {...edgeProps} data={{ branchLength: null }} />
+        <PhyloEdge
+          {...edgeProps}
+          data={{ branchLength: null, branchLabelX: 192 }}
+        />
       </ReactFlowProvider>,
     )
 
     expect(markup).not.toContain('phylo-edge__label')
+    expect(markup).not.toContain('phylo-edge__label-stem')
   })
 })

@@ -22,9 +22,11 @@ export function PhyloNode({
         type="target"
         position={targetPosition ?? Position.Left}
         isConnectable={isConnectable}
-        className="h-0! w-0! invisible"
+        className="h-0! w-0! min-h-0! min-w-0! invisible"
       />
-      <span className="min-w-0 flex-1 truncate font-medium">{data.label}</span>
+      <span className="min-w-0 flex-1 truncate font-medium" title={data.label}>
+        {data.label}
+      </span>
       {metadataCount > 0 ? (
         <span
           className="phylo-node__metadata-badge inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold leading-none text-secondary-foreground"
@@ -35,9 +37,9 @@ export function PhyloNode({
       ) : null}
       <Handle
         type="source"
-        position={sourcePosition ?? Position.Right}
+        position={sourcePosition ?? Position.Left}
         isConnectable={isConnectable}
-        className="h-0! w-0! invisible"
+        className="h-0! w-0! min-h-0! min-w-0! invisible"
       />
     </div>
   )

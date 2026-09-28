@@ -9,7 +9,7 @@ const node: PhyloFlowNode = {
   type: 'phylo',
   position: { x: 0, y: 0 },
   data: { label: 'English', metadata: {} },
-  sourcePosition: Position.Right,
+  sourcePosition: Position.Left,
   targetPosition: Position.Left,
 }
 
@@ -28,8 +28,9 @@ describe('PhyloNode', () => {
     const markup = renderNode(node.data)
 
     expect(markup).toContain('English')
+    expect(markup).toContain('title="English"')
     expect(markup).toContain('react-flow__handle-left')
-    expect(markup).toContain('react-flow__handle-right')
+    expect(markup).not.toContain('react-flow__handle-right')
     expect(markup).not.toContain('phylo-node__metadata-badge')
   })
 

@@ -105,3 +105,11 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+.phylo-edge__label-stem {
+  stroke: var(--muted-foreground);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+  opacity: 0.5;
+  pointer-events: none;
+}

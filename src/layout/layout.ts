@@ -10,8 +10,9 @@ export interface NestedTreeNode {
 }
 
 export interface LayoutOptions {
-  horizontalSpacing?: number
+  horizontalGap?: number
   verticalSpacing?: number
+  nodeWidths?: Record<string, number>
 }
 
 export type PhyloNodeData = {
@@ -21,6 +22,7 @@ export type PhyloNodeData = {
 
 export type PhyloEdgeData = {
   branchLength: number | null
+  branchLabelX: number
 }
 
 export type PhyloFlowNode = Node<PhyloNodeData, 'phylo'>
@@ -31,16 +33,38 @@ export interface FlowLayout {
   edges: PhyloFlowEdge[]
 }
 
-const DEFAULT_HORIZONTAL_SPACING = 240
-const DEFAULT_VERTICAL_SPACING = 100
+const DEFAULT_HORIZONTAL_GAP = 96
+const DEFAULT_VERTICAL_SPACING = 120
+const DEFAULT_NODE_WIDTH = 144
 
 export function layoutTree(
   tree: NestedTreeNode,
   options: LayoutOptions = {},
 ): FlowLayout {
-  const horizontalSpacing =
-    options.horizontalSpacing ?? DEFAULT_HORIZONTAL_SPACING
+  const horizontalGap = options.horizontalGap ?? DEFAULT_HORIZONTAL_GAP
   const verticalSpacing = options.verticalSpacing ?? DEFAULT_VERTICAL_SPACING
+  const nodeWidths = options.nodeWidths ?? {}
+  const maxWidthByDepth: number[] = []
+
+  function measureWidths(node: NestedTreeNode, depth: number): void {
+    const width = nodeWidths[node.id] ?? DEFAULT_NODE_WIDTH
+    maxWidthByDepth[depth] = Math.max(maxWidthByDepth[depth] ?? 0, width)
+
+    for (const child of node.children ?? []) {
+      measureWidths(child, depth + 1)
+    }
+  }
+
+  measureWidths(tree, 0)
+
+  const xByDepth: number[] = [0]
+  for (let depth = 1; depth <= maxWidthByDepth.length; depth += 1) {
+    xByDepth[depth] =
+      xByDepth[depth - 1] +
+      (maxWidthByDepth[depth - 1] ?? DEFAULT_NODE_WIDTH) +
+      horizontalGap
+  }
+
   const nodes: Array<PhyloFlowNode | undefined> = []
   const edges: PhyloFlowEdge[] = []
   let leafIndex = 0
@@ -48,6 +72,9 @@ export function layoutTree(
   function visit(treeNode: NestedTreeNode, depth: number): number {
     const children = treeNode.children ?? []
     const nodeIndex = nodes.length
+    const parentX = xByDepth[depth] ?? 0
+    const parentRight =
+      parentX + (nodeWidths[treeNode.id] ?? DEFAULT_NODE_WIDTH)
 
     nodes.push(undefined)
     for (const child of children) {
@@ -56,7 +83,10 @@ export function layoutTree(
         source: treeNode.id,
         target: child.id,
         type: 'phylo',
-        data: { branchLength: child.branchLength ?? null },
+        data: {
+          branchLength: child.branchLength ?? null,
+          branchLabelX: (parentRight + (xByDepth[depth + 1] ?? 0)) / 2,
+        },
       })
     }
 
@@ -68,13 +98,13 @@ export function layoutTree(
 
     nodes[nodeIndex] = {
       id: treeNode.id,
-      position: { x: depth * horizontalSpacing, y },
+      position: { x: parentX, y },
       type: 'phylo',
       data: {
         label: treeNode.label,
         metadata: { ...treeNode.metadata },
       },
-      sourcePosition: 'right' as PhyloFlowNode['sourcePosition'],
+      sourcePosition: 'left' as PhyloFlowNode['sourcePosition'],
       targetPosition: 'left' as PhyloFlowNode['targetPosition'],
     }
 

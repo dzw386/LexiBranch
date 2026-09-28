@@ -73,22 +73,25 @@ function App() {
   > | null>(null)
 
   const { nodes: layoutNodes, edges } = useMemo(
-    () => layoutPhyloTree(tree),
-    [tree],
-  )
-  const structureKey = useMemo(
     () =>
-      JSON.stringify({
-        rootId: tree.rootId,
-        nodes: Object.values(tree.nodes).map(({ id, parentId, childIds }) => ({
-          id,
-          parentId,
-          childIds,
-        })),
+      layoutPhyloTree(tree, {
+        nodeWidths: Object.fromEntries(
+          Object.entries(nodeMeasurements).map(([id, { width }]) => [
+            id,
+            width,
+          ]),
+        ),
       }),
-    [tree],
+    [tree, nodeMeasurements],
   )
-  const previousStructureKey = useRef(structureKey)
+  const layoutKey = useMemo(
+    () =>
+      JSON.stringify(
+        layoutNodes.map((node) => [node.id, node.position.x, node.position.y]),
+      ),
+    [layoutNodes],
+  )
+  const previousLayoutKey = useRef(layoutKey)
   const measuredLayoutNodes = useMemo(
     () =>
       layoutNodes.map((node) => {
@@ -107,20 +110,17 @@ function App() {
   )
 
   useEffect(() => {
-    if (
-      reactFlowInstance === null ||
-      previousStructureKey.current === structureKey
-    ) {
+    if (reactFlowInstance === null || previousLayoutKey.current === layoutKey) {
       return
     }
 
-    previousStructureKey.current = structureKey
+    previousLayoutKey.current = layoutKey
     const timeoutId = window.setTimeout(() => {
       void reactFlowInstance.fitView(FIT_VIEW_OPTIONS)
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [reactFlowInstance, structureKey])
+  }, [reactFlowInstance, layoutKey])
 
   const selectedNode =
     layoutNodes.find((node) => node.id === selectedNodeId) ?? null
