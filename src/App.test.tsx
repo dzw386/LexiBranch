@@ -40,6 +40,7 @@ describe('App', () => {
       tree: createInitialTree(),
       selectedNodeId: null,
       pendingMoveNodeId: null,
+      viewMode: 'cladogram',
     })
     await i18n.changeLanguage('en')
   })
@@ -78,6 +79,33 @@ describe('App', () => {
     expect(markup).toContain('Export')
     expect(markup).toContain('Tree tools sidebar')
     expect(markup).toContain('Phylogenetic tree canvas')
+  })
+
+  it('switches between cladogram and phylogram view modes', () => {
+    mountApp()
+
+    expect(
+      screen
+        .getByRole('button', { name: 'Cladogram' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(useTreeStore.getState().viewMode).toBe('cladogram')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Phylogram' }))
+    expect(useTreeStore.getState().viewMode).toBe('phylogram')
+    expect(
+      screen
+        .getByRole('button', { name: 'Phylogram' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cladogram' }))
+    expect(useTreeStore.getState().viewMode).toBe('cladogram')
+    expect(
+      screen
+        .getByRole('button', { name: 'Cladogram' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
   })
 
   it('renders translated shell text when the language changes', async () => {

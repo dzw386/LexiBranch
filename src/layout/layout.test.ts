@@ -224,3 +224,123 @@ describe('layoutTree', () => {
     expect(edges[0]?.data).toEqual({ branchLength: 1.5, branchLabelX: 192 })
   })
 })
+
+describe('layoutTree in phylogram mode', () => {
+  function positionsById(
+    nodes: ReturnType<typeof layoutTree>['nodes'],
+  ): Record<string, { x: number; y: number }> {
+    return Object.fromEntries(
+      nodes.map((node) => [node.id, node.position] as const),
+    )
+  }
+
+  it('positions nodes by cumulative branch length scaled to the target width', () => {
+    const { nodes } = layoutTree(
+      {
+        id: 'root',
+        label: 'Root',
+        children: [
+          {
+            id: 'a',
+            label: 'A',
+            branchLength: 0.5,
+            children: [{ id: 'a1', label: 'A1', branchLength: 0.5 }],
+          },
+          { id: 'b', label: 'B', branchLength: 1 },
+        ],
+      },
+      { mode: 'phylogram' },
+    )
+    const positions = positionsById(nodes)
+
+    expect(positions.root).toEqual({ x: 0, y: 60 })
+    expect(positions.a).toEqual({ x: 600, y: 0 })
+    expect(positions.a1).toEqual({ x: 1200, y: 0 })
+    expect(positions.b).toEqual({ x: 1200, y: 120 })
+  })
+
+  it('treats missing branch lengths as 1', () => {
+    const { nodes } = layoutTree(
+      {
+        id: 'root',
+        label: 'Root',
+        children: [
+          {
+            id: 'x',
+            label: 'X',
+            children: [{ id: 'x1', label: 'X1' }],
+          },
+          { id: 'y', label: 'Y', branchLength: 2 },
+        ],
+      },
+      { mode: 'phylogram' },
+    )
+    const positions = positionsById(nodes)
+
+    expect(positions.x).toEqual({ x: 600, y: 0 })
+    expect(positions.x1).toEqual({ x: 1200, y: 0 })
+    expect(positions.y).toEqual({ x: 1200, y: 120 })
+  })
+
+  it('draws zero-length branches as a 24px stub', () => {
+    const { nodes } = layoutTree(
+      {
+        id: 'root',
+        label: 'Root',
+        children: [
+          { id: 'a', label: 'A', branchLength: 0 },
+          { id: 'b', label: 'B', branchLength: 1 },
+        ],
+      },
+      { mode: 'phylogram' },
+    )
+    const positions = positionsById(nodes)
+
+    expect(positions.a?.x).toBe(24)
+    expect(positions.b?.x).toBe(1200)
+  })
+
+  it('pushes a single-child chain past the parent box', () => {
+    const { nodes, edges } = layoutTree(
+      {
+        id: 'root',
+        label: 'Root',
+        children: [
+          {
+            id: 'a',
+            label: 'A',
+            branchLength: 0.05,
+            children: [{ id: 'a1', label: 'A1', branchLength: 1.45 }],
+          },
+        ],
+      },
+      { mode: 'phylogram' },
+    )
+    const positions = positionsById(nodes)
+
+    expect(positions.root).toEqual({ x: 0, y: 0 })
+    expect(positions.a).toEqual({ x: 168, y: 0 })
+    expect(positions.a1).toEqual({ x: 1328, y: 0 })
+    expect(edges[0]?.data).toEqual({ branchLength: 0.05, branchLabelX: 156 })
+  })
+
+  it('pushes the middle child of an odd fan past the parent box', () => {
+    const { nodes } = layoutTree(
+      {
+        id: 'root',
+        label: 'Root',
+        children: [
+          { id: 'a', label: 'A', branchLength: 1 },
+          { id: 'm', label: 'M', branchLength: 0.001 },
+          { id: 'c', label: 'C', branchLength: 1 },
+        ],
+      },
+      { mode: 'phylogram' },
+    )
+    const positions = positionsById(nodes)
+
+    expect(positions.m).toEqual({ x: 168, y: 120 })
+    expect(positions.a?.x).toBe(1200)
+    expect(positions.c?.x).toBe(1200)
+  })
+})

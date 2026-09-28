@@ -11,6 +11,7 @@ function resetStore(): void {
     tree: createEmptyTree(),
     selectedNodeId: null,
     pendingMoveNodeId: null,
+    viewMode: 'cladogram',
   })
 }
 
@@ -79,6 +80,16 @@ describe('useTreeStore', () => {
     expect(useTreeStore.getState().selectedNodeId).toBe('custom-selection')
     store.selectNode(null)
     expect(useTreeStore.getState().selectedNodeId).toBeNull()
+  })
+
+  it('switches the view mode', () => {
+    expect(useTreeStore.getState().viewMode).toBe('cladogram')
+
+    useTreeStore.getState().setViewMode('phylogram')
+    expect(useTreeStore.getState().viewMode).toBe('phylogram')
+
+    useTreeStore.getState().setViewMode('cladogram')
+    expect(useTreeStore.getState().viewMode).toBe('cladogram')
   })
 
   it('tracks a pending move and completes it against a chosen parent', () => {

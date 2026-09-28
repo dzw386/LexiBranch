@@ -9,7 +9,10 @@ export interface NestedTreeNode {
   children?: NestedTreeNode[]
 }
 
+export type LayoutMode = 'cladogram' | 'phylogram'
+
 export interface LayoutOptions {
+  mode?: LayoutMode
   horizontalGap?: number
   verticalSpacing?: number
   nodeWidths?: Record<string, number>
@@ -36,87 +39,131 @@ export interface FlowLayout {
 const DEFAULT_HORIZONTAL_GAP = 96
 const DEFAULT_VERTICAL_SPACING = 120
 const DEFAULT_NODE_WIDTH = 144
+const PHYLOGRAM_TARGET_WIDTH = 1200
+const PHYLOGRAM_FALLBACK_SCALE = 240
+const MISSING_BRANCH_LENGTH = 1
+const MIN_PHYLOGRAM_BRANCH = 24
 
 export function layoutTree(
   tree: NestedTreeNode,
   options: LayoutOptions = {},
 ): FlowLayout {
+  const mode = options.mode ?? 'cladogram'
   const horizontalGap = options.horizontalGap ?? DEFAULT_HORIZONTAL_GAP
   const verticalSpacing = options.verticalSpacing ?? DEFAULT_VERTICAL_SPACING
   const nodeWidths = options.nodeWidths ?? {}
   const maxWidthByDepth: number[] = []
-
-  function measureWidths(node: NestedTreeNode, depth: number): void {
-    const width = nodeWidths[node.id] ?? DEFAULT_NODE_WIDTH
-    maxWidthByDepth[depth] = Math.max(maxWidthByDepth[depth] ?? 0, width)
-
-    for (const child of node.children ?? []) {
-      measureWidths(child, depth + 1)
-    }
-  }
-
-  measureWidths(tree, 0)
-
-  const xByDepth: number[] = [0]
-  for (let depth = 1; depth <= maxWidthByDepth.length; depth += 1) {
-    xByDepth[depth] =
-      xByDepth[depth - 1] +
-      (maxWidthByDepth[depth - 1] ?? DEFAULT_NODE_WIDTH) +
-      horizontalGap
-  }
-
-  const nodes: Array<PhyloFlowNode | undefined> = []
-  const edges: PhyloFlowEdge[] = []
+  const yById = new Map<string, number>()
+  let maxCumulative = 0
   let leafIndex = 0
 
-  function visit(treeNode: NestedTreeNode, depth: number): number {
-    const children = treeNode.children ?? []
-    const nodeIndex = nodes.length
-    const parentX = xByDepth[depth] ?? 0
-    const parentRight =
-      parentX + (nodeWidths[treeNode.id] ?? DEFAULT_NODE_WIDTH)
+  function measure(
+    node: NestedTreeNode,
+    depth: number,
+    cumulative: number,
+  ): number {
+    maxWidthByDepth[depth] = Math.max(
+      maxWidthByDepth[depth] ?? 0,
+      nodeWidths[node.id] ?? DEFAULT_NODE_WIDTH,
+    )
+    maxCumulative = Math.max(maxCumulative, cumulative)
 
-    nodes.push(undefined)
-    for (const child of children) {
+    const children = node.children ?? []
+    const childYs = children.map((child) =>
+      measure(
+        child,
+        depth + 1,
+        cumulative + (child.branchLength ?? MISSING_BRANCH_LENGTH),
+      ),
+    )
+    const y =
+      childYs.length === 0
+        ? leafIndex++ * verticalSpacing
+        : (childYs[0] + childYs[childYs.length - 1]) / 2
+
+    yById.set(node.id, y)
+    return y
+  }
+
+  measure(tree, 0, 0)
+
+  const phylogramScale =
+    maxCumulative > 0
+      ? PHYLOGRAM_TARGET_WIDTH / maxCumulative
+      : PHYLOGRAM_FALLBACK_SCALE
+
+  function childX(
+    parent: NestedTreeNode,
+    child: NestedTreeNode,
+    depth: number,
+    parentX: number,
+  ): number {
+    if (mode === 'phylogram') {
+      const parentWidth = nodeWidths[parent.id] ?? DEFAULT_NODE_WIDTH
+      const sharesParentRow = yById.get(child.id) === yById.get(parent.id)
+      const floor = sharesParentRow
+        ? parentWidth + MIN_PHYLOGRAM_BRANCH
+        : MIN_PHYLOGRAM_BRANCH
+
+      return (
+        parentX +
+        Math.max(
+          (child.branchLength ?? MISSING_BRANCH_LENGTH) * phylogramScale,
+          floor,
+        )
+      )
+    }
+
+    return (
+      parentX + (maxWidthByDepth[depth] ?? DEFAULT_NODE_WIDTH) + horizontalGap
+    )
+  }
+
+  const nodes: PhyloFlowNode[] = []
+  const edges: PhyloFlowEdge[] = []
+
+  function visit(node: NestedTreeNode, depth: number, x: number): void {
+    const children = node.children ?? []
+    const parentRight = x + (nodeWidths[node.id] ?? DEFAULT_NODE_WIDTH)
+
+    nodes.push({
+      id: node.id,
+      position: { x, y: yById.get(node.id) ?? 0 },
+      type: 'phylo',
+      data: {
+        label: node.label,
+        metadata: { ...node.metadata },
+      },
+      sourcePosition: 'left' as PhyloFlowNode['sourcePosition'],
+      targetPosition: 'left' as PhyloFlowNode['targetPosition'],
+    })
+
+    const childPositions = children.map((child) => ({
+      child,
+      x: childX(node, child, depth, x),
+    }))
+
+    for (const { child, x: childPositionX } of childPositions) {
       edges.push({
-        id: `${treeNode.id}-${child.id}`,
-        source: treeNode.id,
+        id: `${node.id}-${child.id}`,
+        source: node.id,
         target: child.id,
         type: 'phylo',
         data: {
           branchLength: child.branchLength ?? null,
-          branchLabelX: (parentRight + (xByDepth[depth + 1] ?? 0)) / 2,
+          branchLabelX: (parentRight + childPositionX) / 2,
         },
       })
     }
 
-    const childPositions = children.map((child) => visit(child, depth + 1))
-    const y =
-      childPositions.length === 0
-        ? leafIndex++ * verticalSpacing
-        : (childPositions[0] + childPositions[childPositions.length - 1]) / 2
-
-    nodes[nodeIndex] = {
-      id: treeNode.id,
-      position: { x: parentX, y },
-      type: 'phylo',
-      data: {
-        label: treeNode.label,
-        metadata: { ...treeNode.metadata },
-      },
-      sourcePosition: 'left' as PhyloFlowNode['sourcePosition'],
-      targetPosition: 'left' as PhyloFlowNode['targetPosition'],
+    for (const { child, x: childPositionX } of childPositions) {
+      visit(child, depth + 1, childPositionX)
     }
-
-    return y
   }
 
-  visit(tree, 0)
+  visit(tree, 0, 0)
 
-  return {
-    nodes: nodes.filter((node): node is PhyloFlowNode => node !== undefined),
-    edges,
-  }
+  return { nodes, edges }
 }
 
 export function layoutPhyloTree(

@@ -14,6 +14,7 @@ import {
   type ReorderDirection,
 } from '../domain/tree'
 import type { MetadataValue, PhyloTree } from '../domain/types'
+import type { LayoutMode } from '../layout/layout'
 
 export type AddChildOptions = Omit<CreateNodeOptions, 'parentId'>
 
@@ -21,7 +22,9 @@ export interface TreeStore {
   tree: PhyloTree
   selectedNodeId: string | null
   pendingMoveNodeId: string | null
+  viewMode: LayoutMode
   selectNode: (nodeId: string | null) => void
+  setViewMode: (viewMode: LayoutMode) => void
   addChild: (parentId: string, options?: AddChildOptions) => void
   removeSubtree: (nodeId: string) => void
   setLabel: (nodeId: string, label: string) => void
@@ -91,8 +94,11 @@ export const useTreeStore = create<TreeStore>((set) => ({
   tree: createInitialTree(),
   selectedNodeId: null,
   pendingMoveNodeId: null,
+  viewMode: 'cladogram',
 
   selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
+
+  setViewMode: (viewMode) => set({ viewMode }),
 
   addChild: (parentId, options = {}) =>
     set((state) => {

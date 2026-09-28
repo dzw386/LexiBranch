@@ -51,7 +51,9 @@ function App() {
   const tree = useTreeStore((state) => state.tree)
   const selectedNodeId = useTreeStore((state) => state.selectedNodeId)
   const pendingMoveNodeId = useTreeStore((state) => state.pendingMoveNodeId)
+  const viewMode = useTreeStore((state) => state.viewMode)
   const selectNode = useTreeStore((state) => state.selectNode)
+  const setViewMode = useTreeStore((state) => state.setViewMode)
   const addChild = useTreeStore((state) => state.addChild)
   const removeSubtree = useTreeStore((state) => state.removeSubtree)
   const setLabel = useTreeStore((state) => state.setLabel)
@@ -75,6 +77,7 @@ function App() {
   const { nodes: layoutNodes, edges } = useMemo(
     () =>
       layoutPhyloTree(tree, {
+        mode: viewMode,
         nodeWidths: Object.fromEntries(
           Object.entries(nodeMeasurements).map(([id, { width }]) => [
             id,
@@ -82,7 +85,7 @@ function App() {
           ]),
         ),
       }),
-    [tree, nodeMeasurements],
+    [tree, nodeMeasurements, viewMode],
   )
   const layoutKey = useMemo(
     () =>
@@ -280,6 +283,32 @@ function App() {
           className="flex shrink-0 items-center gap-2"
           aria-label={t('workspaceActions')}
         >
+          <div
+            className="hidden items-center gap-1 rounded-md border bg-background p-0.5 sm:flex"
+            role="group"
+            aria-label={t('viewMode')}
+          >
+            <Button
+              type="button"
+              size="sm"
+              variant={viewMode === 'cladogram' ? 'secondary' : 'ghost'}
+              className="h-7 px-2 text-xs"
+              aria-pressed={viewMode === 'cladogram'}
+              onClick={() => setViewMode('cladogram')}
+            >
+              {t('cladogramMode')}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={viewMode === 'phylogram' ? 'secondary' : 'ghost'}
+              className="h-7 px-2 text-xs"
+              aria-pressed={viewMode === 'phylogram'}
+              onClick={() => setViewMode('phylogram')}
+            >
+              {t('phylogramMode')}
+            </Button>
+          </div>
           <Button
             type="button"
             variant="outline"
