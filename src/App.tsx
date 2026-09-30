@@ -35,7 +35,7 @@ const readOnlyEdgeOptions = { selectable: false, reconnectable: false }
 const MIN_CANVAS_ZOOM = 0.2
 const MAX_CANVAS_ZOOM = 1.5
 const FIT_VIEW_OPTIONS = {
-  padding: 0.2,
+  padding: 0.1,
   minZoom: MIN_CANVAS_ZOOM,
   maxZoom: MAX_CANVAS_ZOOM,
   duration: 200,
@@ -467,7 +467,11 @@ function App() {
             zoomOnPinch
           >
             <Background variant={BackgroundVariant.Lines} gap={24} />
-            <Controls showInteractive={false} aria-label={t('treeControls')} />
+            <Controls
+              showInteractive={false}
+              fitViewOptions={FIT_VIEW_OPTIONS}
+              aria-label={t('treeControls')}
+            />
           </ReactFlow>
         </section>
       </main>
