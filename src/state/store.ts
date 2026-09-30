@@ -37,7 +37,6 @@ export interface TreeStore {
     value: MetadataValue,
   ) => void
   removeMetadata: (nodeId: string, key: string) => void
-  moveSubtree: (nodeId: string, newParentId: string) => void
   reorderChild: (
     parentId: string,
     childId: string,
@@ -148,12 +147,6 @@ export const useTreeStore = create<TreeStore>((set) => ({
   removeMetadata: (nodeId, key) =>
     set((state) => ({
       tree: removeMetadataFromTree(state.tree, nodeId, key),
-      selectedNodeId: nodeId,
-    })),
-
-  moveSubtree: (nodeId, newParentId) =>
-    set((state) => ({
-      tree: moveSubtreeInTree(state.tree, nodeId, newParentId),
       selectedNodeId: nodeId,
     })),
 

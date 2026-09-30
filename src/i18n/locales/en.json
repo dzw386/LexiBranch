@@ -11,7 +11,6 @@
   "phylogramMode": "Phylogram",
   "treeToolsSidebar": "Tree tools sidebar",
   "workspace": "Workspace",
-  "treeEditor": "Tree editor",
   "nodeDetails": "Node details",
   "editNode": "Edit node",
   "selectNodePrompt": "Select a node to view its details.",
@@ -59,7 +58,6 @@
   "deleteSubtreeDescription_other": "This will permanently delete “{{label}}” and all its descendants ({{count}} nodes).",
   "confirmDelete": "Delete",
   "cancel": "Cancel",
-  "editingToolsPlaceholder": "Editing tools will appear here.",
   "phylogeneticTreeCanvas": "Phylogenetic tree canvas",
   "treeControls": "Tree view controls",
   "close": "Close"

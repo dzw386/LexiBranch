@@ -11,7 +11,6 @@
   "phylogramMode": "Filogram",
   "treeToolsSidebar": "Panel narzędzi drzewa",
   "workspace": "Obszar roboczy",
-  "treeEditor": "Edytor drzewa",
   "nodeDetails": "Szczegóły węzła",
   "editNode": "Edytuj węzeł",
   "selectNodePrompt": "Wybierz węzeł, aby wyświetlić jego szczegóły.",
@@ -60,7 +59,6 @@
   "deleteSubtreeDescription_many": "Spowoduje to trwałe usunięcie „{{label}}” i wszystkich jego potomków ({{count}} węzłów).",
   "confirmDelete": "Usuń",
   "cancel": "Anuluj",
-  "editingToolsPlaceholder": "Narzędzia edycji pojawią się tutaj.",
   "phylogeneticTreeCanvas": "Obszar drzewa filogenetycznego",
   "treeControls": "Elementy sterujące widokiem drzewa",
   "close": "Zamknij"

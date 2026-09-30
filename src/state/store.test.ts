@@ -34,7 +34,8 @@ describe('useTreeStore', () => {
     expect(useTreeStore.getState().tree.nodes.leaf?.branchLength).toBe(1.5)
     expect(useTreeStore.getState().selectedNodeId).toBe('leaf')
 
-    store.moveSubtree('leaf', rootId)
+    store.startMoveSubtree('leaf')
+    store.completeMoveSubtree(rootId)
     expect(useTreeStore.getState().tree.nodes[rootId]?.childIds).toEqual([
       'branch',
       'leaf',
@@ -63,8 +64,8 @@ describe('useTreeStore', () => {
     store.addChild('branch', { id: 'leaf' })
     const before = useTreeStore.getState()
 
-    expect(() => store.moveSubtree('branch', 'leaf')).toThrow(
-      TreeOperationError,
+    expect(() => store.removeSubtree(rootId)).toThrow(
+      'The root node cannot be removed.',
     )
 
     expect(useTreeStore.getState().tree).toBe(before.tree)
