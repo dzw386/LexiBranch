@@ -11,7 +11,7 @@ import singleLeaf from './fixtures/single-leaf.nwk?raw'
 import trailingContent from './fixtures/trailing-content.nwk?raw'
 import unterminatedLabel from './fixtures/unterminated-label.nwk?raw'
 import whitespaceTree from './fixtures/whitespace.nwk?raw'
-import { parse, ParseError, parseNewickSyntax } from './newick'
+import { parse, ParseError, parseNewickSyntax, serialize } from './newick'
 
 interface TreeShape {
   label: string
@@ -141,6 +141,43 @@ describe('parse Newick fixtures', () => {
         expect(tree.nodes[childId]?.parentId).toBe(id)
       }
     }
+  })
+})
+
+describe('serialize Newick', () => {
+  it.each(validFixtures)('round-trips the $name fixture', ({ source }) => {
+    const tree = parse(source)
+    const serialized = serialize(tree)
+
+    expect(serialized).toMatch(/;$/u)
+    expect(getTreeShape(parse(serialized))).toEqual(getTreeShape(tree))
+  })
+
+  it('quotes empty labels and labels containing Newick delimiters', () => {
+    const tree = parse("('label: [with]; O''Brien':1e-7);")
+    const serialized = serialize(tree)
+
+    expect(serialized).toBe("('label: [with]; O''Brien':1e-7)'';")
+    expect(getTreeShape(parse(serialized))).toEqual(getTreeShape(tree))
+  })
+
+  it('round-trips an empty tree with a blank root label', () => {
+    const tree: PhyloTree = {
+      rootId: 'root',
+      nodes: {
+        root: {
+          id: 'root',
+          parentId: null,
+          childIds: [],
+          label: '',
+          branchLength: null,
+          metadata: {},
+        },
+      },
+    }
+
+    expect(serialize(tree)).toBe("'';")
+    expect(getTreeShape(parse(serialize(tree)))).toEqual(getTreeShape(tree))
   })
 })
 

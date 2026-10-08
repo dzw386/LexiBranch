@@ -312,3 +312,45 @@ export function parse(text: string): PhyloTree {
 
   return { rootId, nodes }
 }
+
+function serializeLabel(label: string): string {
+  const needsQuotes =
+    label === '' ||
+    /[\s(),:;']/u.test(label) ||
+    label.includes('[') ||
+    label.includes(']')
+
+  if (!needsQuotes) {
+    return label
+  }
+
+  return `'${label.replace(/'/g, "''")}'`
+}
+
+function serializeSubtree(tree: PhyloTree, nodeId: string): string {
+  const node = tree.nodes[nodeId]
+
+  if (node === undefined) {
+    throw new Error(`Node "${nodeId}" does not exist.`)
+  }
+
+  if (nodeId === tree.rootId && node.branchLength !== null) {
+    throw new Error('The root node cannot have a branch length.')
+  }
+
+  const children = node.childIds.map((childId) =>
+    serializeSubtree(tree, childId),
+  )
+  const childGroup = children.length > 0 ? `(${children.join(',')})` : ''
+  const branchLength =
+    nodeId !== tree.rootId && node.branchLength !== null
+      ? `:${node.branchLength}`
+      : ''
+
+  return `${childGroup}${serializeLabel(node.label)}${branchLength}`
+}
+
+/** Serialize a normalized tree as a Newick string with a terminal semicolon. */
+export function serialize(tree: PhyloTree): string {
+  return `${serializeSubtree(tree, tree.rootId)};`
+}
