@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   createEmptyTree,
+  createNode,
   MetadataOperationError,
   TreeOperationError,
 } from '../domain/tree'
@@ -90,6 +91,26 @@ describe('useTreeStore', () => {
     expect(useTreeStore.getState().viewMode).toBe('phylogram')
 
     useTreeStore.getState().setViewMode('cladogram')
+    expect(useTreeStore.getState().viewMode).toBe('cladogram')
+  })
+
+  it('replaces the current tree on import and clears transient node state', () => {
+    const store = useTreeStore.getState()
+    const currentRootId = store.tree.rootId
+    store.addChild(currentRootId, { id: 'branch' })
+    store.selectNode('branch')
+    store.startMoveSubtree('branch')
+
+    const importedRoot = createNode({ id: 'imported-root', label: 'Imported' })
+    const importedTree = {
+      rootId: importedRoot.id,
+      nodes: { [importedRoot.id]: importedRoot },
+    }
+    store.importTree(importedTree)
+
+    expect(useTreeStore.getState().tree).toBe(importedTree)
+    expect(useTreeStore.getState().selectedNodeId).toBeNull()
+    expect(useTreeStore.getState().pendingMoveNodeId).toBeNull()
     expect(useTreeStore.getState().viewMode).toBe('cladogram')
   })
 

@@ -7,7 +7,7 @@ import {
 } from '@testing-library/react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { I18nextProvider } from 'react-i18next'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { layoutPhyloTree } from './layout/layout'
 import i18n from './i18n'
@@ -33,9 +33,28 @@ function countRenderedNodes(): number {
   return document.querySelectorAll('.react-flow__node').length
 }
 
+function createTextFile(name: string, contents: string): File {
+  const file = new File([contents], name, { type: 'text/plain' })
+  Object.defineProperty(file, 'text', { value: async () => contents })
+  return file
+}
+
+function importFile(file: File, buttonLabel = 'Import'): void {
+  const input = document.querySelector<HTMLInputElement>('input[type="file"]')
+
+  if (input === null) {
+    throw new Error('The Newick file input was not rendered.')
+  }
+
+  fireEvent.click(screen.getByRole('button', { name: buttonLabel }))
+  fireEvent.change(input, { target: { files: [file] } })
+}
+
 describe('App', () => {
   afterEach(async () => {
     cleanup()
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
     useTreeStore.setState({
       tree: createInitialTree(),
       selectedNodeId: null,
@@ -119,6 +138,113 @@ describe('App', () => {
     expect(markup).toContain('Panel narzędzi drzewa')
     expect(markup).toContain('Obszar drzewa filogenetycznego')
     expect(markup).toContain('Elementy sterujące widokiem drzewa')
+  })
+
+  it('imports a Newick file and replaces the tree in the canvas', async () => {
+    mountApp()
+
+    const fileInput =
+      document.querySelector<HTMLInputElement>('input[type="file"]')
+    if (fileInput === null) {
+      throw new Error('The Newick file input was not rendered.')
+    }
+    const inputClick = vi.spyOn(fileInput, 'click')
+
+    importFile(
+      createTextFile('languages.nwk', '(English:0.4,Polish:0.3)Proto;'),
+    )
+
+    expect(inputClick).toHaveBeenCalledTimes(1)
+    await waitFor(() => {
+      const tree = useTreeStore.getState().tree
+      expect(Object.keys(tree.nodes)).toHaveLength(3)
+      expect(Object.values(tree.nodes).map((node) => node.label)).toEqual(
+        expect.arrayContaining(['Proto', 'English', 'Polish']),
+      )
+    })
+    expect(useTreeStore.getState().selectedNodeId).toBeNull()
+    expect(await screen.findByText('Proto')).toBeDefined()
+  })
+
+  it('shows a translated dialog for invalid Newick without parser internals', async () => {
+    await i18n.changeLanguage('pl')
+    const originalTree = useTreeStore.getState().tree
+    mountApp()
+
+    importFile(createTextFile('broken.nwk', '(English,Polish'), 'Importuj')
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.textContent).toContain('Nie udało się zaimportować pliku')
+    expect(dialog.textContent).toContain('broken.nwk')
+    expect(dialog.textContent).toContain('Problem występuje w pobliżu znaku')
+    expect(dialog.textContent).not.toContain('Expected ")"')
+    expect(useTreeStore.getState().tree).toBe(originalTree)
+  })
+
+  it('closes the import error dialog and accepts a retried import', async () => {
+    mountApp()
+
+    importFile(createTextFile('broken.nwk', '(English,Polish'))
+    expect(await screen.findByRole('dialog')).toBeDefined()
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Close' })[0])
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+    importFile(
+      createTextFile('languages.nwk', '(English:0.4,Polish:0.3)Proto;'),
+    )
+
+    await waitFor(() =>
+      expect(Object.keys(useTreeStore.getState().tree.nodes)).toHaveLength(3),
+    )
+  })
+
+  it('exports the tree as a Newick Blob download from the format picker', async () => {
+    const createObjectURL = vi
+      .fn<(blob: Blob) => string>()
+      .mockReturnValue('blob:lexibranch')
+    const revokeObjectURL = vi.fn<(url: string) => void>()
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL })
+    const anchorClick = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {
+        expect(
+          document.querySelector<HTMLAnchorElement>('a[download]')?.download,
+        ).toBe('tree.nwk')
+      })
+
+    mountApp()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    expect(screen.getByRole('combobox', { name: 'File format' })).toBeDefined()
+    expect(
+      screen.getByText(
+        'Newick does not preserve metadata. The downloaded file will only include the tree structure, labels, and branch lengths.',
+      ),
+    ).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }))
+
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
+    expect(anchorClick).toHaveBeenCalledTimes(1)
+    const blob = createObjectURL.mock.calls[0]?.[0]
+    if (blob === undefined) {
+      throw new Error('The export Blob was not created.')
+    }
+
+    const exportedText = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = () => reject(reader.error)
+      reader.readAsText(blob)
+    })
+    expect(exportedText).toBe(
+      '((English:0.4,German:0.4)Germanic:0.8,(Polish:0.4,Russian:0.4)Slavic:0.8)Proto-language;',
+    )
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() =>
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:lexibranch'),
+    )
   })
 
   it('renders the node details panel before a node is selected', () => {

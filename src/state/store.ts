@@ -25,6 +25,7 @@ export interface TreeStore {
   viewMode: LayoutMode
   selectNode: (nodeId: string | null) => void
   setViewMode: (viewMode: LayoutMode) => void
+  importTree: (tree: PhyloTree) => void
   addChild: (parentId: string, options?: AddChildOptions) => void
   removeSubtree: (nodeId: string) => void
   setLabel: (nodeId: string, label: string) => void
@@ -98,6 +99,9 @@ export const useTreeStore = create<TreeStore>((set) => ({
   selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
 
   setViewMode: (viewMode) => set({ viewMode }),
+
+  importTree: (tree) =>
+    set({ tree, selectedNodeId: null, pendingMoveNodeId: null }),
 
   addChild: (parentId, options = {}) =>
     set((state) => {

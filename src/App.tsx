@@ -9,10 +9,11 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Download, Plus, Upload } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PhyloEdge } from './components/canvas/PhyloEdge'
 import { PhyloNode } from './components/canvas/PhyloNode'
+import { ImportExportActions } from './components/dialogs/ImportExportActions'
 import { NodeDetailsPanel } from './components/panels/NodeDetailsPanel'
 import { Button } from './components/ui/button'
 import {
@@ -53,6 +54,7 @@ function App() {
   const pendingMoveNodeId = useTreeStore((state) => state.pendingMoveNodeId)
   const viewMode = useTreeStore((state) => state.viewMode)
   const selectNode = useTreeStore((state) => state.selectNode)
+  const importTree = useTreeStore((state) => state.importTree)
   const setViewMode = useTreeStore((state) => state.setViewMode)
   const addChild = useTreeStore((state) => state.addChild)
   const removeSubtree = useTreeStore((state) => state.removeSubtree)
@@ -320,28 +322,7 @@ function App() {
             <Plus aria-hidden="true" />
             <span className="hidden sm:inline">{t('newTree')}</span>
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="px-2 sm:px-3"
-            aria-label={t('import')}
-            disabled
-          >
-            <Upload aria-hidden="true" />
-            <span className="hidden sm:inline">{t('import')}</span>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="px-2 sm:px-3"
-            aria-label={t('export')}
-            disabled
-          >
-            <Download aria-hidden="true" />
-            <span className="hidden sm:inline">{t('export')}</span>
-          </Button>
+          <ImportExportActions tree={tree} onImport={importTree} />
         </nav>
       </header>
 
