@@ -5,12 +5,14 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import { XMLValidator } from 'fast-xml-parser'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { I18nextProvider } from 'react-i18next'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { layoutPhyloTree } from './layout/layout'
 import i18n from './i18n'
+import languagesPhyloXml from './parsers/fixtures/languages.phyloxml?raw'
 import metadataNhx from './parsers/fixtures/metadata.nhx?raw'
 import { createInitialTree, useTreeStore } from './state/store'
 
@@ -188,6 +190,35 @@ describe('App', () => {
     expect(await screen.findByDisplayValue('eng')).toBeDefined()
   })
 
+  it('imports phyloXML files and preserves their tree data', async () => {
+    mountApp()
+
+    const fileInput =
+      document.querySelector<HTMLInputElement>('input[type="file"]')
+    if (fileInput === null) {
+      throw new Error('The tree file input was not rendered.')
+    }
+    expect(fileInput.accept).toContain('.xml')
+    expect(fileInput.accept).toContain('.phyloxml')
+
+    importFile(createTextFile('languages.xml', languagesPhyloXml))
+
+    await waitFor(() => {
+      const tree = useTreeStore.getState().tree
+      expect(Object.keys(tree.nodes)).toHaveLength(5)
+      expect(tree.nodes[tree.rootId]).toMatchObject({
+        label: 'Proto-Indo-European',
+        metadata: { source: 'fixture & example' },
+      })
+      expect(
+        Object.values(tree.nodes).find((node) => node.label === 'English'),
+      ).toMatchObject({
+        branchLength: 0.3,
+        metadata: { code: 'eng', confidence: 0.98, attested: true },
+      })
+    })
+  })
+
   it('shows a translated dialog for invalid Newick without parser internals', async () => {
     await i18n.changeLanguage('pl')
     const originalTree = useTreeStore.getState().tree
@@ -314,6 +345,55 @@ describe('App', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     await waitFor(() =>
       expect(revokeObjectURL).toHaveBeenCalledWith('blob:lexibranch-nhx'),
+    )
+  })
+
+  it('exports the tree as phyloXML from the format picker', async () => {
+    const createObjectURL = vi
+      .fn<(blob: Blob) => string>()
+      .mockReturnValue('blob:lexibranch-phyloxml')
+    const revokeObjectURL = vi.fn<(url: string) => void>()
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL })
+    const anchorClick = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {
+        expect(
+          document.querySelector<HTMLAnchorElement>('a[download]')?.download,
+        ).toBe('tree.xml')
+      })
+
+    mountApp()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'File format' }), {
+      target: { value: 'phyloxml' },
+    })
+    expect(screen.queryByText(/Newick does not preserve metadata/u)).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }))
+
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
+    expect(anchorClick).toHaveBeenCalledTimes(1)
+    const blob = createObjectURL.mock.calls[0]?.[0]
+    if (blob === undefined) {
+      throw new Error('The phyloXML export Blob was not created.')
+    }
+    expect(blob.type).toBe('application/xml;charset=utf-8')
+
+    const exportedText = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = () => reject(reader.error)
+      reader.readAsText(blob)
+    })
+    expect(XMLValidator.validate(exportedText)).toBe(true)
+    expect(exportedText).toContain('<name>Proto-language</name>')
+    expect(exportedText).toContain(
+      '<property ref="branch" datatype="xsd:string">West Germanic</property>',
+    )
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() =>
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:lexibranch-phyloxml'),
     )
   })
 

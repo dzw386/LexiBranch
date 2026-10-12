@@ -4,6 +4,10 @@ import { useTranslation } from 'react-i18next'
 import type { PhyloTree } from '../../domain/types'
 import { serialize } from '../../parsers/newick'
 import {
+  parse as parsePhyloXml,
+  serialize as serializePhyloXml,
+} from '../../parsers/phyloxml'
+import {
   ParseError,
   parse as parseNHX,
   serialize as serializeNHX,
@@ -27,7 +31,13 @@ type ImportError =
   | { type: 'parse'; fileName: string; position: number }
   | { type: 'read'; fileName: string }
 
-type ExportFormat = 'newick' | 'nhx'
+type ExportFormat = 'newick' | 'nhx' | 'phyloxml'
+
+function isPhyloXmlFile(file: File): boolean {
+  const extension = file.name.toLowerCase().split('.').at(-1)
+
+  return extension === 'xml' || extension === 'phyloxml'
+}
 
 export function ImportExportActions({
   tree,
@@ -57,7 +67,10 @@ export function ImportExportActions({
     setImportError(null)
 
     try {
-      const importedTree = parseNHX(await file.text())
+      const contents = await file.text()
+      const importedTree = isPhyloXmlFile(file)
+        ? parsePhyloXml(contents)
+        : parseNHX(contents)
       onImport(importedTree)
     } catch (error) {
       if (error instanceof ParseError) {
@@ -76,17 +89,21 @@ export function ImportExportActions({
   }
 
   function handleDownload(): void {
-    const content =
-      exportFormat === 'nhx' ? serializeNHX(tree) : serialize(tree)
+    const content = {
+      newick: () => serialize(tree),
+      nhx: () => serializeNHX(tree),
+      phyloxml: () => serializePhyloXml(tree),
+    }[exportFormat]()
     const blob = new Blob([content], {
-      type: 'text/plain;charset=utf-8',
+      type:
+        exportFormat === 'phyloxml'
+          ? 'application/xml;charset=utf-8'
+          : 'text/plain;charset=utf-8',
     })
     const objectUrl = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = objectUrl
-    link.download = t(
-      exportFormat === 'nhx' ? 'nhxExportFileName' : 'exportFileName',
-    )
+    link.download = t(`${exportFormat}ExportFileName`)
     document.body.append(link)
     link.click()
     link.remove()
@@ -99,7 +116,7 @@ export function ImportExportActions({
       <input
         ref={fileInputRef}
         type="file"
-        accept=".nwk,.newick,.nhx"
+        accept=".nwk,.newick,.nhx,.xml,.phyloxml"
         aria-label={t('treeFileInput')}
         className="hidden"
         onChange={(event) => {
@@ -155,6 +172,7 @@ export function ImportExportActions({
             >
               <option value="newick">{t('newickFormat')}</option>
               <option value="nhx">{t('nhxFormat')}</option>
+              <option value="phyloxml">{t('phyloXmlFormat')}</option>
             </select>
           </div>
           {exportFormat === 'newick' && hasMetadata ? (
