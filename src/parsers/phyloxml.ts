@@ -11,10 +11,12 @@ const XML_PARSER_OPTIONS = {
   attributeNamePrefix: '@_',
   textNodeName: '#text',
   parseTagValue: false,
-  trimValues: true,
+  trimValues: false,
   removeNSPrefix: true,
 }
 
+const PHYLOXML_NAMESPACE = 'http://www.phyloxml.org'
+const XML_SCHEMA_NAMESPACE = 'http://www.w3.org/2001/XMLSchema'
 const XML_NUMBER_PATTERN = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/u
 const NUMERIC_DATATYPES = new Set([
   'byte',
@@ -82,7 +84,7 @@ function asArray(value: unknown): unknown[] {
 
 function readText(value: unknown): string | null {
   if (typeof value === 'string') {
-    return value.trim()
+    return value
   }
 
   if (typeof value === 'number' || typeof value === 'boolean') {
@@ -93,7 +95,7 @@ function readText(value: unknown): string | null {
     const text = value['#text']
 
     if (typeof text === 'string') {
-      return text.trim()
+      return text
     }
 
     if (typeof text === 'number' || typeof text === 'boolean') {
@@ -118,7 +120,7 @@ function parseBranchLength(
     throw new ParseError('A clade can only have one branch length', 0)
   }
 
-  const rawLength = readText(branchLengths[0])
+  const rawLength = readText(branchLengths[0])?.trim() ?? null
   if (rawLength === null || !XML_NUMBER_PATTERN.test(rawLength)) {
     throw new ParseError('Invalid phyloXML branch length', 0)
   }
@@ -139,14 +141,15 @@ function parseMetadataValue(
   rawValue: string,
   datatype: string | undefined,
 ): MetadataValue {
-  const datatypeName = datatype?.split(/[#:]/u).at(-1)?.toLowerCase()
+  const datatypeName = datatype?.trim().split(/[#:]/u).at(-1)?.toLowerCase()
+  const normalizedValue = rawValue.trim()
 
   if (datatypeName === 'boolean') {
-    if (rawValue === 'true' || rawValue === '1') {
+    if (normalizedValue === 'true' || normalizedValue === '1') {
       return true
     }
 
-    if (rawValue === 'false' || rawValue === '0') {
+    if (normalizedValue === 'false' || normalizedValue === '0') {
       return false
     }
 
@@ -154,11 +157,11 @@ function parseMetadataValue(
   }
 
   if (datatypeName !== undefined && NUMERIC_DATATYPES.has(datatypeName)) {
-    if (!XML_NUMBER_PATTERN.test(rawValue)) {
+    if (!XML_NUMBER_PATTERN.test(normalizedValue)) {
       throw new ParseError(`Invalid phyloXML numeric value "${rawValue}"`, 0)
     }
 
-    const numberValue = Number(rawValue)
+    const numberValue = Number(normalizedValue)
     if (!Number.isFinite(numberValue)) {
       throw new ParseError(`Invalid phyloXML numeric value "${rawValue}"`, 0)
     }
@@ -167,6 +170,139 @@ function parseMetadataValue(
   }
 
   return rawValue
+}
+
+function isValidXmlCodePoint(codePoint: number): boolean {
+  return (
+    codePoint === 0x9 ||
+    codePoint === 0xa ||
+    codePoint === 0xd ||
+    (codePoint >= 0x20 && codePoint <= 0xd7ff) ||
+    (codePoint >= 0xe000 && codePoint <= 0xfffd) ||
+    (codePoint >= 0x10000 && codePoint <= 0x10ffff)
+  )
+}
+
+function escapeXml(value: string, context: 'text' | 'attribute'): string {
+  let escaped = ''
+
+  for (const character of value) {
+    const codePoint = character.codePointAt(0)
+
+    if (codePoint === undefined || !isValidXmlCodePoint(codePoint)) {
+      throw new Error(
+        'phyloXML values cannot contain characters forbidden by XML 1.0.',
+      )
+    }
+
+    switch (character) {
+      case '&':
+        escaped += '&amp;'
+        break
+      case '<':
+        escaped += '&lt;'
+        break
+      case '>':
+        escaped += '&gt;'
+        break
+      case '"':
+        escaped += '&quot;'
+        break
+      case "'":
+        escaped += '&apos;'
+        break
+      case '\n':
+        escaped += context === 'attribute' ? '&#10;' : character
+        break
+      case '\r':
+        escaped += '&#13;'
+        break
+      case '\t':
+        escaped += context === 'attribute' ? '&#9;' : character
+        break
+      default:
+        escaped += character
+    }
+  }
+
+  return escaped
+}
+
+function serializeNumber(value: number): string {
+  if (!Number.isFinite(value)) {
+    throw new Error('phyloXML cannot serialize non-finite numbers.')
+  }
+
+  return Object.is(value, -0) ? '-0' : String(value)
+}
+
+function serializeMetadata(
+  metadata: Record<string, MetadataValue>,
+  indentation: string,
+): string[] {
+  return Object.entries(metadata).map(([reference, value]) => {
+    if (reference.trim() === '') {
+      throw new Error('phyloXML property refs must be non-empty.')
+    }
+
+    let datatype: string
+    let textValue: string
+
+    if (typeof value === 'string') {
+      datatype = 'string'
+      textValue = value
+    } else if (typeof value === 'boolean') {
+      datatype = 'boolean'
+      textValue = String(value)
+    } else {
+      datatype = 'double'
+      textValue = serializeNumber(value)
+    }
+
+    return `${indentation}<property ref="${escapeXml(reference, 'attribute')}" datatype="xsd:${datatype}">${escapeXml(textValue, 'text')}</property>`
+  })
+}
+
+function serializeClade(
+  tree: PhyloTree,
+  nodeId: string,
+  depth: number,
+): string {
+  const node = tree.nodes[nodeId]
+
+  if (node === undefined) {
+    throw new Error(`Node "${nodeId}" does not exist.`)
+  }
+
+  if (nodeId === tree.rootId && node.branchLength !== null) {
+    throw new Error('The root node cannot have a branch length.')
+  }
+
+  const indentation = '  '.repeat(depth)
+  const childIndentation = `${indentation}  `
+  const lines = [
+    `${indentation}<clade>`,
+    `${childIndentation}<name>${escapeXml(node.label, 'text')}</name>`,
+  ]
+
+  if (nodeId !== tree.rootId && node.branchLength !== null) {
+    if (node.branchLength < 0) {
+      throw new Error('Branch lengths must be non-negative.')
+    }
+
+    lines.push(
+      `${childIndentation}<branch_length>${serializeNumber(node.branchLength)}</branch_length>`,
+    )
+  }
+
+  lines.push(...serializeMetadata(node.metadata, childIndentation))
+
+  for (const childId of node.childIds) {
+    lines.push(serializeClade(tree, childId, depth + 1))
+  }
+
+  lines.push(`${indentation}</clade>`)
+  return lines.join('\n')
 }
 
 function parseMetadata(clade: XmlRecord): Record<string, MetadataValue> {
@@ -253,4 +389,22 @@ export function parse(text: string): PhyloTree {
   const rootId = addClade(rootClades[0], null)
 
   return { rootId, nodes }
+}
+
+/** Serialize a normalized tree as a phyloXML document. */
+export function serialize(tree: PhyloTree): string {
+  const root = tree.nodes[tree.rootId]
+
+  if (root === undefined) {
+    throw new Error(`Root node "${tree.rootId}" does not exist.`)
+  }
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    `<phyloxml xmlns="${PHYLOXML_NAMESPACE}" xmlns:xsd="${XML_SCHEMA_NAMESPACE}">`,
+    '  <phylogeny rooted="true">',
+    serializeClade(tree, tree.rootId, 2),
+    '  </phylogeny>',
+    '</phyloxml>',
+  ].join('\n')
 }

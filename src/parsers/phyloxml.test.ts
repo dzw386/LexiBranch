@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { XMLValidator } from 'fast-xml-parser'
 import type { PhyloTree } from '../domain/types'
 import languagesPhyloXml from './fixtures/languages.phyloxml?raw'
 import malformedPhyloXml from './fixtures/malformed.phyloxml?raw'
 import minimalPhyloXml from './fixtures/minimal.phyloxml?raw'
-import { ParseError, parse } from './phyloxml'
+import { ParseError, parse, serialize } from './phyloxml'
 
 interface PhyloXmlTreeShape {
   label: string
@@ -106,6 +107,53 @@ describe('parse phyloXML fixtures', () => {
         expect(tree.nodes[childId]?.parentId).toBe(id)
       }
     }
+  })
+})
+
+describe('serialize phyloXML', () => {
+  it.each(validFixtures)(
+    'round-trips the $name fixture as well-formed XML',
+    ({ source }) => {
+      const tree = parse(source)
+      const serialized = serialize(tree)
+
+      expect(XMLValidator.validate(serialized)).toBe(true)
+      expect(getTreeShape(parse(serialized))).toEqual(getTreeShape(tree))
+    },
+  )
+
+  it('escapes XML values and preserves whitespace and metadata types', () => {
+    const tree = parse(minimalPhyloXml)
+    const root = tree.nodes[tree.rootId]
+
+    if (root === undefined) {
+      throw new Error('Expected the minimal fixture to have a root node')
+    }
+
+    const treeWithXmlValues: PhyloTree = {
+      ...tree,
+      nodes: {
+        ...tree.nodes,
+        [root.id]: {
+          ...root,
+          label: ' Root & <clade> "quoted" ',
+          metadata: {
+            'note & "key"': ' text <tag> & "quoted" ',
+            boolean: false,
+            number: 1e-12,
+            stringBoolean: 'true',
+          },
+        },
+      },
+    }
+    const serialized = serialize(treeWithXmlValues)
+
+    expect(XMLValidator.validate(serialized)).toBe(true)
+    expect(serialized).toContain('&lt;clade&gt;')
+    expect(serialized).toContain('note &amp; &quot;key&quot;')
+    expect(getTreeShape(parse(serialized))).toEqual(
+      getTreeShape(treeWithXmlValues),
+    )
   })
 })
 
