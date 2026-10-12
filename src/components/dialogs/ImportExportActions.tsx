@@ -2,7 +2,12 @@ import { useRef, useState, type ChangeEvent } from 'react'
 import { Download, Upload } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { PhyloTree } from '../../domain/types'
-import { ParseError, parse, serialize } from '../../parsers/newick'
+import { serialize } from '../../parsers/newick'
+import {
+  ParseError,
+  parse as parseNHX,
+  serialize as serializeNHX,
+} from '../../parsers/nhx'
 import { Button } from '../ui/button'
 import {
   Dialog,
@@ -22,7 +27,7 @@ type ImportError =
   | { type: 'parse'; fileName: string; position: number }
   | { type: 'read'; fileName: string }
 
-type ExportFormat = 'newick'
+type ExportFormat = 'newick' | 'nhx'
 
 export function ImportExportActions({
   tree,
@@ -52,7 +57,7 @@ export function ImportExportActions({
     setImportError(null)
 
     try {
-      const importedTree = parse(await file.text())
+      const importedTree = parseNHX(await file.text())
       onImport(importedTree)
     } catch (error) {
       if (error instanceof ParseError) {
@@ -71,13 +76,17 @@ export function ImportExportActions({
   }
 
   function handleDownload(): void {
-    const blob = new Blob([serialize(tree)], {
+    const content =
+      exportFormat === 'nhx' ? serializeNHX(tree) : serialize(tree)
+    const blob = new Blob([content], {
       type: 'text/plain;charset=utf-8',
     })
     const objectUrl = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = objectUrl
-    link.download = t('exportFileName')
+    link.download = t(
+      exportFormat === 'nhx' ? 'nhxExportFileName' : 'exportFileName',
+    )
     document.body.append(link)
     link.click()
     link.remove()
@@ -90,8 +99,8 @@ export function ImportExportActions({
       <input
         ref={fileInputRef}
         type="file"
-        accept=".nwk,.newick"
-        aria-label={t('newickFileInput')}
+        accept=".nwk,.newick,.nhx"
+        aria-label={t('treeFileInput')}
         className="hidden"
         onChange={(event) => {
           void handleFileChange(event)
@@ -103,7 +112,7 @@ export function ImportExportActions({
         size="sm"
         className="px-2 sm:px-3"
         aria-label={t('import')}
-        title={t('importNewickFile')}
+        title={t('importTreeFile')}
         onClick={() => fileInputRef.current?.click()}
       >
         <Upload aria-hidden="true" />
@@ -145,9 +154,10 @@ export function ImportExportActions({
               className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               <option value="newick">{t('newickFormat')}</option>
+              <option value="nhx">{t('nhxFormat')}</option>
             </select>
           </div>
-          {hasMetadata ? (
+          {exportFormat === 'newick' && hasMetadata ? (
             <p
               role="status"
               className="rounded-md border border-border bg-muted p-3 text-sm text-muted-foreground"

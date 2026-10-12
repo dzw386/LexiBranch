@@ -1,4 +1,4 @@
-import type { PhyloTree, TreeNodeData } from '../domain/types'
+import type { MetadataValue, PhyloTree, TreeNodeData } from '../domain/types'
 import { ParseError } from './parseError'
 
 export { ParseError }
@@ -13,6 +13,7 @@ export interface NewickSyntaxNode {
 
 interface ParsedNewickSyntaxNode extends NewickSyntaxNode {
   children: ParsedNewickSyntaxNode[]
+  commentPositions: number[]
   branchLengthPosition: number | null
 }
 
@@ -35,8 +36,10 @@ class NewickParser {
     }
 
     const trailingComments: string[] = []
-    this.consumeTrivia(trailingComments)
+    const trailingCommentPositions: number[] = []
+    this.consumeTrivia(trailingComments, trailingCommentPositions)
     root.comments.push(...trailingComments)
+    root.commentPositions.push(...trailingCommentPositions)
 
     if (this.offset !== this.source.length) {
       this.fail('Unexpected content after the Newick tree')
@@ -47,7 +50,8 @@ class NewickParser {
 
   private parseSubtree(): ParsedNewickSyntaxNode {
     const comments: string[] = []
-    this.consumeTrivia(comments)
+    const commentPositions: number[] = []
+    this.consumeTrivia(comments, commentPositions)
 
     const children: ParsedNewickSyntaxNode[] = []
     const isInternalNode = this.peek() === '('
@@ -84,7 +88,7 @@ class NewickParser {
       }
     }
 
-    this.consumeTrivia(comments)
+    this.consumeTrivia(comments, commentPositions)
 
     let label = ''
     let hasLabel = false
@@ -101,17 +105,17 @@ class NewickParser {
       this.fail('Expected a label for the leaf node')
     }
 
-    this.consumeTrivia(comments)
+    this.consumeTrivia(comments, commentPositions)
 
     let branchLength: number | null = null
     let branchLengthPosition: number | null = null
 
     if (this.peek() === ':') {
       this.offset += 1
-      this.consumeTrivia(comments)
+      this.consumeTrivia(comments, commentPositions)
       branchLengthPosition = this.offset
       branchLength = this.readBranchLength()
-      this.consumeTrivia(comments)
+      this.consumeTrivia(comments, commentPositions)
     }
 
     return {
@@ -119,6 +123,7 @@ class NewickParser {
       branchLength,
       children,
       comments,
+      commentPositions,
       branchLengthPosition,
     }
   }
@@ -201,7 +206,7 @@ class NewickParser {
     return branchLength
   }
 
-  private consumeTrivia(comments: string[]): void {
+  private consumeTrivia(comments: string[], commentPositions: number[]): void {
     while (true) {
       this.skipWhitespace()
 
@@ -209,6 +214,7 @@ class NewickParser {
         return
       }
 
+      commentPositions.push(this.offset)
       comments.push(this.readComment())
     }
   }
@@ -276,8 +282,16 @@ export function parseNewickSyntax(text: string): NewickSyntaxNode {
   return new NewickParser(text).parse()
 }
 
-/** Parse a Newick tree into the application's normalized tree model. */
-export function parse(text: string): PhyloTree {
+/**
+ * Parse a Newick tree, allowing a format layer to interpret comments as metadata.
+ */
+export function parseWithNodeMetadata(
+  text: string,
+  metadataFromComments: (
+    comments: readonly string[],
+    commentPositions: readonly number[],
+  ) => Record<string, MetadataValue>,
+): PhyloTree {
   const root = new NewickParser(text).parse()
 
   if (root.branchLength !== null) {
@@ -302,7 +316,10 @@ export function parse(text: string): PhyloTree {
       childIds,
       label: parsedNode.label,
       branchLength: parentId === null ? null : parsedNode.branchLength,
-      metadata: {},
+      metadata: metadataFromComments(
+        parsedNode.comments,
+        parsedNode.commentPositions,
+      ),
     }
 
     return id
@@ -311,6 +328,11 @@ export function parse(text: string): PhyloTree {
   const rootId = addNode(root, null)
 
   return { rootId, nodes }
+}
+
+/** Parse a Newick tree into the application's normalized tree model. */
+export function parse(text: string): PhyloTree {
+  return parseWithNodeMetadata(text, () => ({}))
 }
 
 function serializeLabel(label: string): string {
@@ -327,7 +349,11 @@ function serializeLabel(label: string): string {
   return `'${label.replace(/'/g, "''")}'`
 }
 
-function serializeSubtree(tree: PhyloTree, nodeId: string): string {
+function serializeSubtree(
+  tree: PhyloTree,
+  nodeId: string,
+  commentForNode: (node: TreeNodeData) => string,
+): string {
   const node = tree.nodes[nodeId]
 
   if (node === undefined) {
@@ -339,7 +365,7 @@ function serializeSubtree(tree: PhyloTree, nodeId: string): string {
   }
 
   const children = node.childIds.map((childId) =>
-    serializeSubtree(tree, childId),
+    serializeSubtree(tree, childId, commentForNode),
   )
   const childGroup = children.length > 0 ? `(${children.join(',')})` : ''
   const branchLength =
@@ -347,10 +373,18 @@ function serializeSubtree(tree: PhyloTree, nodeId: string): string {
       ? `:${node.branchLength}`
       : ''
 
-  return `${childGroup}${serializeLabel(node.label)}${branchLength}`
+  return `${childGroup}${serializeLabel(node.label)}${branchLength}${commentForNode(node)}`
+}
+
+/** Serialize a normalized tree with optional comments appended to each node. */
+export function serializeWithNodeComments(
+  tree: PhyloTree,
+  commentForNode: (node: TreeNodeData) => string,
+): string {
+  return `${serializeSubtree(tree, tree.rootId, commentForNode)};`
 }
 
 /** Serialize a normalized tree as a Newick string with a terminal semicolon. */
 export function serialize(tree: PhyloTree): string {
-  return `${serializeSubtree(tree, tree.rootId)};`
+  return serializeWithNodeComments(tree, () => '')
 }

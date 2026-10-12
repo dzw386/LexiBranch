@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { layoutPhyloTree } from './layout/layout'
 import i18n from './i18n'
+import metadataNhx from './parsers/fixtures/metadata.nhx?raw'
 import { createInitialTree, useTreeStore } from './state/store'
 
 function renderApp() {
@@ -43,7 +44,7 @@ function importFile(file: File, buttonLabel = 'Import'): void {
   const input = document.querySelector<HTMLInputElement>('input[type="file"]')
 
   if (input === null) {
-    throw new Error('The Newick file input was not rendered.')
+    throw new Error('The tree file input was not rendered.')
   }
 
   fireEvent.click(screen.getByRole('button', { name: buttonLabel }))
@@ -146,7 +147,7 @@ describe('App', () => {
     const fileInput =
       document.querySelector<HTMLInputElement>('input[type="file"]')
     if (fileInput === null) {
-      throw new Error('The Newick file input was not rendered.')
+      throw new Error('The tree file input was not rendered.')
     }
     const inputClick = vi.spyOn(fileInput, 'click')
 
@@ -164,6 +165,27 @@ describe('App', () => {
     })
     expect(useTreeStore.getState().selectedNodeId).toBeNull()
     expect(await screen.findByText('Proto')).toBeDefined()
+  })
+
+  it('imports NHX metadata and shows it in the node details panel', async () => {
+    mountApp()
+
+    importFile(createTextFile('languages.nhx', metadataNhx))
+
+    await waitFor(() => {
+      const tree = useTreeStore.getState().tree
+      const english = Object.values(tree.nodes).find(
+        (node) => node.label === 'English',
+      )
+
+      expect(english?.metadata).toEqual({
+        code: 'eng',
+        note: 'first-second',
+      })
+    })
+
+    fireEvent.click(await screen.findByText('English'))
+    expect(await screen.findByDisplayValue('eng')).toBeDefined()
   })
 
   it('shows a translated dialog for invalid Newick without parser internals', async () => {
@@ -244,6 +266,54 @@ describe('App', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     await waitFor(() =>
       expect(revokeObjectURL).toHaveBeenCalledWith('blob:lexibranch'),
+    )
+  })
+
+  it('exports metadata as NHX from the format picker', async () => {
+    const createObjectURL = vi
+      .fn<(blob: Blob) => string>()
+      .mockReturnValue('blob:lexibranch-nhx')
+    const revokeObjectURL = vi.fn<(url: string) => void>()
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL })
+    const anchorClick = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {
+        expect(
+          document.querySelector<HTMLAnchorElement>('a[download]')?.download,
+        ).toBe('tree.nhx')
+      })
+
+    mountApp()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'File format' }), {
+      target: { value: 'nhx' },
+    })
+    expect(
+      screen.queryByText(
+        'Newick does not preserve metadata. The downloaded file will only include the tree structure, labels, and branch lengths.',
+      ),
+    ).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }))
+
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
+    expect(anchorClick).toHaveBeenCalledTimes(1)
+    const blob = createObjectURL.mock.calls[0]?.[0]
+    if (blob === undefined) {
+      throw new Error('The NHX export Blob was not created.')
+    }
+
+    const exportedText = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = () => reject(reader.error)
+      reader.readAsText(blob)
+    })
+    expect(exportedText).toContain('Germanic:0.8[&&NHX:branch=West Germanic]')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() =>
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:lexibranch-nhx'),
     )
   })
 
