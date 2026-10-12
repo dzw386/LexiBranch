@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phyloxml xmlns="http://www.phyloxml.org">
+  <phylogeny rooted="true">
+    <name>Language family</name>
+    <clade>
+      <name>Proto-Indo-European</name>
+      <property ref="source" datatype="xsd:string">fixture &amp; example</property>
+      <clade>
+        <name>Germanic</name>
+        <branch_length>0.5</branch_length>
+        <property ref="group" datatype="xsd:string">West Germanic</property>
+        <clade>
+          <name>English</name>
+          <branch_length>0.3</branch_length>
+          <property ref="code" datatype="xsd:string">eng</property>
+          <property ref="confidence" datatype="xsd:decimal">0.98</property>
+          <property ref="attested" datatype="xsd:boolean">true</property>
+        </clade>
+        <clade>
+          <name>German</name>
+          <branch_length>0.2</branch_length>
+          <property ref="code" datatype="xsd:string">deu</property>
+          <property ref="extinct" datatype="xsd:boolean">false</property>
+        </clade>
+      </clade>
+      <clade>
+        <name>Polish</name>
+        <branch_length>0.4</branch_length>
+        <property ref="code" datatype="xsd:string">pol</property>
+      </clade>
+    </clade>
+  </phylogeny>
+</phyloxml>
