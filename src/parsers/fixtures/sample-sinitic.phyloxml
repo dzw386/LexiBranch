@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phyloxml xmlns="http://www.phyloxml.org">
+  <phylogeny rooted="true">
+    <clade>
+      <name>Proto-Sinitic</name>
+      <property ref="reconstructed" datatype="xsd:boolean">true</property>
+      <clade>
+        <name>Middle Chinese</name>
+        <branch_length>1000</branch_length>
+        <property ref="reconstructed" datatype="xsd:boolean">true</property>
+        <clade>
+          <name>Mandarin</name>
+          <branch_length>1500</branch_length>
+          <property ref="iso639_3" datatype="xsd:string">cmn</property>
+          <property ref="nativeName" datatype="xsd:string">官话</property>
+          <property ref="speakers" datatype="xsd:double">940000000</property>
+          <property ref="reconstructed" datatype="xsd:boolean">false</property>
+        </clade>
+        <clade>
+          <name>Yue</name>
+          <branch_length>1500</branch_length>
+          <property ref="iso639_3" datatype="xsd:string">yue</property>
+          <property ref="nativeName" datatype="xsd:string">粵語</property>
+          <property ref="speakers" datatype="xsd:double">85000000</property>
+          <property ref="reconstructed" datatype="xsd:boolean">false</property>
+        </clade>
+        <clade>
+          <name>Wu</name>
+          <branch_length>1500</branch_length>
+          <property ref="iso639_3" datatype="xsd:string">wuu</property>
+          <property ref="nativeName" datatype="xsd:string">吳語</property>
+          <property ref="speakers" datatype="xsd:double">82000000</property>
+          <property ref="reconstructed" datatype="xsd:boolean">false</property>
+        </clade>
+        <clade>
+          <name>Jin</name>
+          <branch_length>1500</branch_length>
+          <property ref="iso639_3" datatype="xsd:string">cjy</property>
+          <property ref="nativeName" datatype="xsd:string">晉語</property>
+          <property ref="speakers" datatype="xsd:double">47000000</property>
+          <property ref="reconstructed" datatype="xsd:boolean">false</property>
+        </clade>
+        <clade>
+          <name>Hakka</name>
+          <branch_length>1500</branch_length>
+          <property ref="iso639_3" datatype="xsd:string">hak</property>
+          <property ref="nativeName" datatype="xsd:string">客家話</property>
+          <property ref="speakers" datatype="xsd:double">44000000</property>
+          <property ref="reconstructed" datatype="xsd:boolean">false</property>
+        </clade>
+        <clade>
+          <name>Xiang</name>
+          <branch_length>1500</branch_length>
+          <property ref="iso639_3" datatype="xsd:string">hsn</property>
+          <property ref="nativeName" datatype="xsd:string">湘語</property>
+          <property ref="speakers" datatype="xsd:double">37000000</property>
+          <property ref="reconstructed" datatype="xsd:boolean">false</property>
+        </clade>
+        <clade>
+          <name>Gan</name>
+          <branch_length>1500</branch_length>
+          <property ref="iso639_3" datatype="xsd:string">gan</property>
+          <property ref="nativeName" datatype="xsd:string">贛語</property>
+          <property ref="speakers" datatype="xsd:double">22000000</property>
+          <property ref="reconstructed" datatype="xsd:boolean">false</property>
+        </clade>
+      </clade>
+      <clade>
+        <name>Min</name>
+        <branch_length>1000</branch_length>
+        <property ref="reconstructed" datatype="xsd:boolean">true</property>
+        <clade>
+          <name>Southern Min</name>
+          <branch_length>1500</branch_length>
+          <property ref="iso639_3" datatype="xsd:string">nan</property>
+          <property ref="nativeName" datatype="xsd:string">閩南語</property>
+          <property ref="speakers" datatype="xsd:double">49000000</property>
+          <property ref="reconstructed" datatype="xsd:boolean">false</property>
+        </clade>
+        <clade>
+          <name>Northern Min</name>
+          <branch_length>1500</branch_length>
+          <property ref="iso639_3" datatype="xsd:string">mnp</property>
+          <property ref="nativeName" datatype="xsd:string">閩北語</property>
+          <property ref="speakers" datatype="xsd:double">11000000</property>
+          <property ref="reconstructed" datatype="xsd:boolean">false</property>
+        </clade>
+        <clade>
+          <name>Eastern Min</name>
+          <branch_length>1500</branch_length>
+          <property ref="iso639_3" datatype="xsd:string">cdo</property>
+          <property ref="nativeName" datatype="xsd:string">閩東語</property>
+          <property ref="speakers" datatype="xsd:double">10000000</property>
+          <property ref="reconstructed" datatype="xsd:boolean">false</property>
+        </clade>
+      </clade>
+    </clade>
+  </phylogeny>
+</phyloxml>

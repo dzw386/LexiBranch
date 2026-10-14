@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phyloxml xmlns="http://www.phyloxml.org">
+  <phylogeny rooted="true">
+    <clade>
+      <name>Proto-Uralic</name>
+      <property ref="reconstructed" datatype="xsd:boolean">true</property>
+      <clade>
+        <name>Finno-Ugric</name>
+        <branch_length>500</branch_length>
+        <property ref="reconstructed" datatype="xsd:boolean">true</property>
+        <clade>
+          <name>Ugric</name>
+          <branch_length>800</branch_length>
+          <property ref="reconstructed" datatype="xsd:boolean">true</property>
+          <clade>
+            <name>Hungarian</name>
+            <branch_length>3200</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">hun</property>
+            <property ref="nativeName" datatype="xsd:string">magyar</property>
+            <property ref="speakers" datatype="xsd:double">13000000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Khanty</name>
+            <branch_length>3200</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">kca</property>
+            <property ref="nativeName" datatype="xsd:string">ханты</property>
+            <property ref="speakers" datatype="xsd:double">10000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+        </clade>
+        <clade>
+          <name>Finnic</name>
+          <branch_length>1500</branch_length>
+          <property ref="reconstructed" datatype="xsd:boolean">true</property>
+          <clade>
+            <name>Finnish</name>
+            <branch_length>2500</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">fin</property>
+            <property ref="nativeName" datatype="xsd:string">suomi</property>
+            <property ref="speakers" datatype="xsd:double">5400000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Estonian</name>
+            <branch_length>2500</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">est</property>
+            <property ref="nativeName" datatype="xsd:string">eesti</property>
+            <property ref="speakers" datatype="xsd:double">1100000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Karelian</name>
+            <branch_length>2500</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">krl</property>
+            <property ref="nativeName" datatype="xsd:string">karjala</property>
+            <property ref="speakers" datatype="xsd:double">30000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+        </clade>
+        <clade>
+          <name>Permic</name>
+          <branch_length>2500</branch_length>
+          <property ref="reconstructed" datatype="xsd:boolean">true</property>
+          <clade>
+            <name>Udmurt</name>
+            <branch_length>1500</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">udm</property>
+            <property ref="nativeName" datatype="xsd:string">удмурт</property>
+            <property ref="speakers" datatype="xsd:double">340000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Komi</name>
+            <branch_length>1500</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">kom</property>
+            <property ref="nativeName" datatype="xsd:string">коми</property>
+            <property ref="speakers" datatype="xsd:double">220000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+        </clade>
+        <clade>
+          <name>Mordvinic</name>
+          <branch_length>2800</branch_length>
+          <property ref="reconstructed" datatype="xsd:boolean">true</property>
+          <clade>
+            <name>Erzya</name>
+            <branch_length>1200</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">myv</property>
+            <property ref="nativeName" datatype="xsd:string">эрзянь</property>
+            <property ref="speakers" datatype="xsd:double">300000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Moksha</name>
+            <branch_length>1200</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">mdf</property>
+            <property ref="nativeName" datatype="xsd:string">мокшень</property>
+            <property ref="speakers" datatype="xsd:double">130000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+        </clade>
+        <clade>
+          <name>Mari</name>
+          <branch_length>3000</branch_length>
+          <property ref="reconstructed" datatype="xsd:boolean">true</property>
+          <clade>
+            <name>Meadow Mari</name>
+            <branch_length>1000</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">mhr</property>
+            <property ref="nativeName" datatype="xsd:string">олык марий</property>
+            <property ref="speakers" datatype="xsd:double">360000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Hill Mari</name>
+            <branch_length>1000</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">mrj</property>
+            <property ref="nativeName" datatype="xsd:string">кырык мары</property>
+            <property ref="speakers" datatype="xsd:double">30000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+        </clade>
+        <clade>
+          <name>Sami</name>
+          <branch_length>2500</branch_length>
+          <property ref="reconstructed" datatype="xsd:boolean">true</property>
+          <clade>
+            <name>Northern Sami</name>
+            <branch_length>1500</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">sme</property>
+            <property ref="nativeName" datatype="xsd:string">davvisámegiella</property>
+            <property ref="speakers" datatype="xsd:double">20000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Southern Sami</name>
+            <branch_length>1500</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">sma</property>
+            <property ref="nativeName" datatype="xsd:string">åarjelsaemien</property>
+            <property ref="speakers" datatype="xsd:double">500</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+        </clade>
+      </clade>
+      <clade>
+        <name>Samoyedic</name>
+        <branch_length>2300</branch_length>
+        <property ref="reconstructed" datatype="xsd:boolean">true</property>
+        <clade>
+          <name>Nenets</name>
+          <branch_length>2200</branch_length>
+          <property ref="iso639_3" datatype="xsd:string">yrk</property>
+          <property ref="nativeName" datatype="xsd:string">ненэцяʼ</property>
+          <property ref="speakers" datatype="xsd:double">22000</property>
+          <property ref="reconstructed" datatype="xsd:boolean">false</property>
+        </clade>
+        <clade>
+          <name>Selkup</name>
+          <branch_length>2200</branch_length>
+          <property ref="iso639_3" datatype="xsd:string">sel</property>
+          <property ref="nativeName" datatype="xsd:string">шӧльӄумыт</property>
+          <property ref="speakers" datatype="xsd:double">1000</property>
+          <property ref="reconstructed" datatype="xsd:boolean">false</property>
+        </clade>
+      </clade>
+    </clade>
+  </phylogeny>
+</phyloxml>

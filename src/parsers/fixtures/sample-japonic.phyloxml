@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phyloxml xmlns="http://www.phyloxml.org">
+  <phylogeny rooted="true">
+    <clade>
+      <name>Proto-Japonic</name>
+      <property ref="reconstructed" datatype="xsd:boolean">true</property>
+      <clade>
+        <name>Japanese</name>
+        <branch_length>2000</branch_length>
+        <property ref="iso639_3" datatype="xsd:string">jpn</property>
+        <property ref="nativeName" datatype="xsd:string">日本語</property>
+        <property ref="speakers" datatype="xsd:double">126000000</property>
+        <property ref="reconstructed" datatype="xsd:boolean">false</property>
+      </clade>
+      <clade>
+        <name>Ryukyuan</name>
+        <branch_length>1000</branch_length>
+        <property ref="reconstructed" datatype="xsd:boolean">true</property>
+        <clade>
+          <name>Northern Ryukyuan</name>
+          <branch_length>400</branch_length>
+          <property ref="reconstructed" datatype="xsd:boolean">true</property>
+          <clade>
+            <name>Okinawan</name>
+            <branch_length>600</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">ryu</property>
+            <property ref="nativeName" datatype="xsd:string">ウチナーグチ</property>
+            <property ref="speakers" datatype="xsd:double">95000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Amami</name>
+            <branch_length>600</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">ams</property>
+            <property ref="nativeName" datatype="xsd:string">シマユムタ</property>
+            <property ref="speakers" datatype="xsd:double">12000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Kunigami</name>
+            <branch_length>600</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">xug</property>
+            <property ref="nativeName" datatype="xsd:string">ヤンバルクトゥーバ</property>
+            <property ref="speakers" datatype="xsd:double">5000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+        </clade>
+        <clade>
+          <name>Southern Ryukyuan</name>
+          <branch_length>300</branch_length>
+          <property ref="reconstructed" datatype="xsd:boolean">true</property>
+          <clade>
+            <name>Miyako</name>
+            <branch_length>700</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">mvi</property>
+            <property ref="nativeName" datatype="xsd:string">ミャークフツ</property>
+            <property ref="speakers" datatype="xsd:double">50000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Yaeyama</name>
+            <branch_length>700</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">rys</property>
+            <property ref="nativeName" datatype="xsd:string">ヤイマムニ</property>
+            <property ref="speakers" datatype="xsd:double">45000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Yonaguni</name>
+            <branch_length>700</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">yoi</property>
+            <property ref="nativeName" datatype="xsd:string">ドゥナンムヌイ</property>
+            <property ref="speakers" datatype="xsd:double">400</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+        </clade>
+      </clade>
+    </clade>
+  </phylogeny>
+</phyloxml>

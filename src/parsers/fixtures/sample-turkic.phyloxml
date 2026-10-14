@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phyloxml xmlns="http://www.phyloxml.org">
+  <phylogeny rooted="true">
+    <clade>
+      <name>Proto-Turkic</name>
+      <property ref="reconstructed" datatype="xsd:boolean">true</property>
+      <clade>
+        <name>Common Turkic</name>
+        <branch_length>900</branch_length>
+        <property ref="reconstructed" datatype="xsd:boolean">true</property>
+        <clade>
+          <name>Oghuz</name>
+          <branch_length>500</branch_length>
+          <property ref="reconstructed" datatype="xsd:boolean">true</property>
+          <clade>
+            <name>Turkish</name>
+            <branch_length>1000</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">tur</property>
+            <property ref="nativeName" datatype="xsd:string">Türkçe</property>
+            <property ref="speakers" datatype="xsd:double">84000000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Azerbaijani</name>
+            <branch_length>1000</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">aze</property>
+            <property ref="nativeName" datatype="xsd:string">Azərbaycanca</property>
+            <property ref="speakers" datatype="xsd:double">24000000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Turkmen</name>
+            <branch_length>1000</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">tuk</property>
+            <property ref="nativeName" datatype="xsd:string">Türkmençe</property>
+            <property ref="speakers" datatype="xsd:double">7000000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+        </clade>
+        <clade>
+          <name>Karluk</name>
+          <branch_length>600</branch_length>
+          <property ref="reconstructed" datatype="xsd:boolean">true</property>
+          <clade>
+            <name>Uzbek</name>
+            <branch_length>900</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">uzb</property>
+            <property ref="nativeName" datatype="xsd:string">oʻzbekcha</property>
+            <property ref="speakers" datatype="xsd:double">33000000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Uyghur</name>
+            <branch_length>900</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">uig</property>
+            <property ref="nativeName" datatype="xsd:string">ئۇيغۇرچە</property>
+            <property ref="speakers" datatype="xsd:double">10000000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+        </clade>
+        <clade>
+          <name>Kipchak</name>
+          <branch_length>600</branch_length>
+          <property ref="reconstructed" datatype="xsd:boolean">true</property>
+          <clade>
+            <name>Kazakh</name>
+            <branch_length>900</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">kaz</property>
+            <property ref="nativeName" datatype="xsd:string">қазақша</property>
+            <property ref="speakers" datatype="xsd:double">14000000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Tatar</name>
+            <branch_length>900</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">tat</property>
+            <property ref="nativeName" datatype="xsd:string">татарча</property>
+            <property ref="speakers" datatype="xsd:double">5200000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Kyrgyz</name>
+            <branch_length>900</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">kir</property>
+            <property ref="nativeName" datatype="xsd:string">кыргызча</property>
+            <property ref="speakers" datatype="xsd:double">4500000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Bashkir</name>
+            <branch_length>900</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">bak</property>
+            <property ref="nativeName" datatype="xsd:string">башҡортса</property>
+            <property ref="speakers" datatype="xsd:double">1200000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+        </clade>
+        <clade>
+          <name>Siberian</name>
+          <branch_length>300</branch_length>
+          <property ref="reconstructed" datatype="xsd:boolean">true</property>
+          <clade>
+            <name>Sakha</name>
+            <branch_length>1200</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">sah</property>
+            <property ref="nativeName" datatype="xsd:string">саха тыла</property>
+            <property ref="speakers" datatype="xsd:double">450000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Tuvan</name>
+            <branch_length>1200</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">tyv</property>
+            <property ref="nativeName" datatype="xsd:string">тыва дыл</property>
+            <property ref="speakers" datatype="xsd:double">280000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+          <clade>
+            <name>Altai</name>
+            <branch_length>1200</branch_length>
+            <property ref="iso639_3" datatype="xsd:string">alt</property>
+            <property ref="nativeName" datatype="xsd:string">алтай тил</property>
+            <property ref="speakers" datatype="xsd:double">55000</property>
+            <property ref="reconstructed" datatype="xsd:boolean">false</property>
+          </clade>
+        </clade>
+      </clade>
+      <clade>
+        <name>Chuvash</name>
+        <branch_length>2400</branch_length>
+        <property ref="iso639_3" datatype="xsd:string">chv</property>
+        <property ref="nativeName" datatype="xsd:string">чӑваш</property>
+        <property ref="speakers" datatype="xsd:double">1000000</property>
+        <property ref="reconstructed" datatype="xsd:boolean">false</property>
+      </clade>
+    </clade>
+  </phylogeny>
+</phyloxml>

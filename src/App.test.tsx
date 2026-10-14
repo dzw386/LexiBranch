@@ -14,6 +14,8 @@ import { layoutPhyloTree } from './layout/layout'
 import i18n from './i18n'
 import languagesPhyloXml from './parsers/fixtures/languages.phyloxml?raw'
 import metadataNhx from './parsers/fixtures/metadata.nhx?raw'
+import { parse as parsePhyloXml } from './parsers/phyloxml'
+import { SAMPLES } from './parsers/samples'
 import { createInitialTree, useTreeStore } from './state/store'
 
 function renderApp() {
@@ -217,6 +219,34 @@ describe('App', () => {
         metadata: { code: 'eng', confidence: 0.98, attested: true },
       })
     })
+  })
+
+  it('loads each sample from the Load example menu and clears selection', async () => {
+    mountApp()
+
+    for (const [index, sample] of SAMPLES.entries()) {
+      useTreeStore.getState().selectNode(useTreeStore.getState().tree.rootId)
+      expect(useTreeStore.getState().selectedNodeId).not.toBeNull()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Load example' }))
+      const menuItems = screen.getAllByRole('menuitem')
+      expect(menuItems).toHaveLength(SAMPLES.length)
+      fireEvent.click(menuItems[index]!)
+
+      const expectedTree = parsePhyloXml(sample.text)
+      const expectedRootLabel =
+        expectedTree.nodes[expectedTree.rootId]?.label ?? ''
+
+      await waitFor(() => {
+        const { tree, selectedNodeId } = useTreeStore.getState()
+        expect(selectedNodeId).toBeNull()
+        expect(Object.keys(tree.nodes)).toHaveLength(
+          Object.keys(expectedTree.nodes).length,
+        )
+        expect(tree.nodes[tree.rootId]?.label).toBe(expectedRootLabel)
+      })
+      expect(await screen.findByText(expectedRootLabel)).toBeDefined()
+    }
   })
 
   it('shows a translated dialog for invalid Newick without parser internals', async () => {

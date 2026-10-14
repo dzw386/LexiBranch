@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { PhyloEdge } from './components/canvas/PhyloEdge'
 import { PhyloNode } from './components/canvas/PhyloNode'
 import { ImportExportActions } from './components/dialogs/ImportExportActions'
+import { LoadExampleMenu } from './components/dialogs/LoadExampleMenu'
 import { NodeDetailsPanel } from './components/panels/NodeDetailsPanel'
 import { Button } from './components/ui/button'
 import {
@@ -322,6 +323,7 @@ function App() {
             <Plus aria-hidden="true" />
             <span className="hidden sm:inline">{t('newTree')}</span>
           </Button>
+          <LoadExampleMenu onLoadExample={importTree} />
           <ImportExportActions tree={tree} onImport={importTree} />
         </nav>
       </header>
