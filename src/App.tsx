@@ -66,7 +66,7 @@ interface NodeMeasurement {
 }
 
 function App() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const ariaLabelConfig = useMemo<AriaLabelConfig>(
     () => ({
       'node.a11yDescription.default': t('flowNodeDescription'),
@@ -328,6 +328,20 @@ function App() {
           className="flex shrink-0 items-center gap-2"
           aria-label={t('workspaceActions')}
         >
+          <label htmlFor="language-select" className="sr-only">
+            {t('language')}
+          </label>
+          <select
+            id="language-select"
+            value={i18n.resolvedLanguage ?? i18n.language}
+            onChange={(event) => {
+              void i18n.changeLanguage(event.currentTarget.value)
+            }}
+            className="h-8 rounded-md border border-input bg-background px-2 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <option value="en">{t('languageEnglish')}</option>
+            <option value="pl">{t('languagePolish')}</option>
+          </select>
           <div
             className="hidden items-center gap-1 rounded-md border bg-background p-0.5 sm:flex"
             role="group"

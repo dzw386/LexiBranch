@@ -132,6 +132,31 @@ describe('App', () => {
     ).toBe('true')
   })
 
+  it('switches the interface language immediately and persists the choice', async () => {
+    mountApp()
+
+    const languageSelector = screen.getByRole('combobox', { name: 'Language' })
+    expect((languageSelector as HTMLSelectElement).value).toBe('en')
+
+    fireEvent.change(languageSelector, { target: { value: 'pl' } })
+
+    await waitFor(() => {
+      expect(screen.getByText('Nowe drzewo')).toBeDefined()
+      expect(
+        (screen.getByRole('combobox', { name: 'Język' }) as HTMLSelectElement)
+          .value,
+      ).toBe('pl')
+    })
+    expect(window.localStorage.getItem('lexibranch-language')).toBe('pl')
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Język' }), {
+      target: { value: 'en' },
+    })
+
+    await waitFor(() => expect(screen.getByText('New tree')).toBeDefined())
+    expect(window.localStorage.getItem('lexibranch-language')).toBe('en')
+  })
+
   it('renders translated shell text when the language changes', async () => {
     await i18n.changeLanguage('pl')
 

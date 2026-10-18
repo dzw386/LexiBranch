@@ -1,3 +1,5 @@
+import { afterEach } from 'vitest'
+
 class ResizeObserverMock {
   callback: ResizeObserverCallback
 
@@ -21,6 +23,31 @@ class ResizeObserverMock {
 
   disconnect(): void {}
 }
+
+const storageItems = new Map<string, string>()
+const localStorageMock: Storage = {
+  get length() {
+    return storageItems.size
+  },
+  clear: () => storageItems.clear(),
+  getItem: (key) => storageItems.get(key) ?? null,
+  key: (index) => [...storageItems.keys()][index] ?? null,
+  removeItem: (key) => {
+    storageItems.delete(key)
+  },
+  setItem: (key, value) => {
+    storageItems.set(key, String(value))
+  },
+}
+
+Object.defineProperty(window, 'localStorage', {
+  configurable: true,
+  value: localStorageMock,
+})
+
+afterEach(() => {
+  localStorageMock.clear()
+})
 
 class DOMMatrixReadOnlyMock {
   m22: number
