@@ -145,6 +145,43 @@ describe('App', () => {
     expect(markup).toContain('Elementy sterujące widokiem drzewa')
   })
 
+  it('localizes React Flow control labels and screen-reader descriptions', async () => {
+    const labels = [
+      { english: 'Zoom In', polish: 'Powiększ' },
+      { english: 'Zoom Out', polish: 'Pomniejsz' },
+      { english: 'Fit View', polish: 'Dopasuj widok' },
+    ]
+    mountApp()
+
+    for (const { english } of labels) {
+      expect(
+        screen.getByRole('button', { name: english }).getAttribute('title'),
+      ).toBe(english)
+    }
+    expect(
+      screen.getByText(
+        'Press Enter or Space to select the node. Press Escape to deselect it.',
+      ),
+    ).toBeTruthy()
+    expect(screen.getByText('This branch is not interactive.')).toBeTruthy()
+
+    await i18n.changeLanguage('pl')
+
+    await waitFor(() => {
+      for (const { polish } of labels) {
+        expect(
+          screen.getByRole('button', { name: polish }).getAttribute('title'),
+        ).toBe(polish)
+      }
+      expect(
+        screen.getByText(
+          'Naciśnij Enter lub spację, aby zaznaczyć węzeł. Naciśnij Escape, aby go odznaczyć.',
+        ),
+      ).toBeTruthy()
+      expect(screen.getByText('Ta gałąź nie jest interaktywna.')).toBeTruthy()
+    })
+  })
+
   it('imports a Newick file and replaces the tree in the canvas', async () => {
     mountApp()
 

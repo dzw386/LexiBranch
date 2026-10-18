@@ -3,6 +3,7 @@ import {
   BackgroundVariant,
   Controls,
   ReactFlow,
+  type AriaLabelConfig,
   type NodeChange,
   type NodeSelectionChange,
   type ReactFlowInstance,
@@ -13,6 +14,7 @@ import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PhyloEdge } from './components/canvas/PhyloEdge'
 import { PhyloNode } from './components/canvas/PhyloNode'
+import { localizeEdgeAriaLabels } from './components/canvas/localizeEdgeAriaLabels'
 import { ImportExportActions } from './components/dialogs/ImportExportActions'
 import { LoadExampleMenu } from './components/dialogs/LoadExampleMenu'
 import { NodeDetailsPanel } from './components/panels/NodeDetailsPanel'
@@ -43,6 +45,21 @@ const FIT_VIEW_OPTIONS = {
   duration: 200,
 }
 
+function getFlowDirectionTranslationKey(direction: string): string {
+  switch (direction) {
+    case 'left':
+      return 'directionLeft'
+    case 'right':
+      return 'directionRight'
+    case 'up':
+      return 'directionUp'
+    case 'down':
+      return 'directionDown'
+    default:
+      return 'directionUnknown'
+  }
+}
+
 interface NodeMeasurement {
   width: number
   height: number
@@ -50,6 +67,27 @@ interface NodeMeasurement {
 
 function App() {
   const { t } = useTranslation()
+  const ariaLabelConfig = useMemo<AriaLabelConfig>(
+    () => ({
+      'node.a11yDescription.default': t('flowNodeDescription'),
+      'node.a11yDescription.keyboardDisabled': t('flowNodeKeyboardDescription'),
+      'node.a11yDescription.ariaLiveMessage': ({ direction, x, y }) =>
+        t('flowNodeMovedAnnouncement', {
+          direction: t(getFlowDirectionTranslationKey(direction)),
+          x,
+          y,
+        }),
+      'edge.a11yDescription.default': t('flowEdgeDescription'),
+      'controls.ariaLabel': t('treeControls'),
+      'controls.zoomIn.ariaLabel': t('zoomIn'),
+      'controls.zoomOut.ariaLabel': t('zoomOut'),
+      'controls.fitView.ariaLabel': t('fitView'),
+      'controls.interactive.ariaLabel': t('toggleInteractivity'),
+      'minimap.ariaLabel': t('miniMap'),
+      'handle.ariaLabel': t('connectionHandle'),
+    }),
+    [t],
+  )
   const tree = useTreeStore((state) => state.tree)
   const selectedNodeId = useTreeStore((state) => state.selectedNodeId)
   const pendingMoveNodeId = useTreeStore((state) => state.pendingMoveNodeId)
@@ -113,6 +151,10 @@ function App() {
         node.id === selectedNodeId ? { ...node, selected: true } : node,
       ),
     [measuredLayoutNodes, selectedNodeId],
+  )
+  const localizedEdges = useMemo(
+    () => localizeEdgeAriaLabels(edges, tree, t),
+    [edges, t, tree],
   )
 
   useEffect(() => {
@@ -419,7 +461,8 @@ function App() {
 
           <ReactFlow
             nodes={nodes}
-            edges={edges}
+            edges={localizedEdges}
+            ariaLabelConfig={ariaLabelConfig}
             onInit={setReactFlowInstance}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
