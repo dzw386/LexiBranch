@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
+  addChild,
   createEmptyTree,
   createNode,
   MetadataOperationError,
   TreeOperationError,
 } from '../domain/tree'
-import { useTreeStore } from './store'
+import { getInitialTree, useTreeStore } from './store'
+import { saveTree } from './persistence'
 
 function resetStore(): void {
   useTreeStore.setState({
@@ -92,6 +94,37 @@ describe('useTreeStore', () => {
 
     useTreeStore.getState().setViewMode('cladogram')
     expect(useTreeStore.getState().viewMode).toBe('cladogram')
+  })
+
+  it('starts a blank tree and clears transient node state', () => {
+    const store = useTreeStore.getState()
+    const rootId = store.tree.rootId
+    store.addChild(rootId, { id: 'branch', label: 'Branch' })
+    store.startMoveSubtree('branch')
+
+    useTreeStore.getState().newTree('New node')
+
+    const state = useTreeStore.getState()
+    expect(Object.keys(state.tree.nodes)).toHaveLength(1)
+    expect(state.tree.nodes[state.tree.rootId]).toMatchObject({
+      label: 'New node',
+      parentId: null,
+      childIds: [],
+      branchLength: null,
+    })
+    expect(state.selectedNodeId).toBeNull()
+    expect(state.pendingMoveNodeId).toBeNull()
+  })
+
+  it('uses a valid saved project as the initial tree', () => {
+    const root = createEmptyTree()
+    const savedTree = addChild(root, root.rootId, {
+      id: 'saved-language',
+      label: 'Saved language',
+    })
+    saveTree(savedTree)
+
+    expect(getInitialTree()).toEqual(savedTree)
   })
 
   it('replaces the current tree on import and clears transient node state', () => {

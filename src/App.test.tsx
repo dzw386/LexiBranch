@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -16,7 +17,12 @@ import languagesPhyloXml from './parsers/fixtures/languages.phyloxml?raw'
 import metadataNhx from './parsers/fixtures/metadata.nhx?raw'
 import { parse as parsePhyloXml } from './parsers/phyloxml'
 import { SAMPLES } from './parsers/samples'
-import { createInitialTree, useTreeStore } from './state/store'
+import {
+  AUTOSAVE_DELAY_MS,
+  SAVED_PROJECT_STORAGE_KEY,
+} from './state/persistence'
+import { createInitialTree, getInitialTree, useTreeStore } from './state/store'
+import type { PhyloTree } from './domain/types'
 
 function renderApp() {
   return renderToStaticMarkup(
@@ -58,6 +64,7 @@ function importFile(file: File, buttonLabel = 'Import'): void {
 describe('App', () => {
   afterEach(async () => {
     cleanup()
+    vi.useRealTimers()
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
     useTreeStore.setState({
@@ -155,6 +162,74 @@ describe('App', () => {
 
     await waitFor(() => expect(screen.getByText('New tree')).toBeDefined())
     expect(window.localStorage.getItem('lexibranch-language')).toBe('en')
+  })
+
+  it('debounces tree autosave, flushes on close, and restores the saved tree', () => {
+    window.localStorage.clear()
+    vi.useFakeTimers()
+    mountApp()
+
+    act(() => useTreeStore.getState().setLabel('germanic', 'Temporary label'))
+    act(() => vi.advanceTimersByTime(AUTOSAVE_DELAY_MS - 1))
+    expect(window.localStorage.getItem(SAVED_PROJECT_STORAGE_KEY)).toBeNull()
+
+    act(() => useTreeStore.getState().setLabel('germanic', 'Saved label'))
+    act(() => vi.advanceTimersByTime(AUTOSAVE_DELAY_MS - 1))
+    expect(window.localStorage.getItem(SAVED_PROJECT_STORAGE_KEY)).toBeNull()
+
+    act(() => vi.advanceTimersByTime(1))
+
+    const serializedProject = window.localStorage.getItem(
+      SAVED_PROJECT_STORAGE_KEY,
+    )
+    expect(serializedProject).not.toBeNull()
+    const savedProject = JSON.parse(serializedProject ?? '') as {
+      tree: PhyloTree
+    }
+    expect(savedProject.tree.nodes.germanic?.label).toBe('Saved label')
+
+    act(() => useTreeStore.getState().setLabel('germanic', 'Last edit'))
+    window.dispatchEvent(new Event('pagehide'))
+    expect(getInitialTree().nodes.germanic?.label).toBe('Last edit')
+    expect(getInitialTree()).toEqual(useTreeStore.getState().tree)
+  })
+
+  it('creates a new tree with the translated root label after confirmation', async () => {
+    mountApp()
+    const originalTree = useTreeStore.getState().tree
+
+    fireEvent.click(screen.getByRole('button', { name: 'New tree' }))
+    expect((await screen.findByRole('dialog')).textContent).toContain(
+      'Your current tree will be replaced with a blank tree.',
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(useTreeStore.getState().tree).toBe(originalTree)
+
+    fireEvent.click(screen.getByRole('button', { name: 'New tree' }))
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Create new tree' }),
+    )
+
+    const { tree, selectedNodeId, pendingMoveNodeId } = useTreeStore.getState()
+    expect(Object.keys(tree.nodes)).toHaveLength(1)
+    expect(tree.nodes[tree.rootId]?.label).toBe('New node')
+    expect(selectedNodeId).toBeNull()
+    expect(pendingMoveNodeId).toBeNull()
+  })
+
+  it('uses the Polish new-node label for the new tree root', async () => {
+    await i18n.changeLanguage('pl')
+    mountApp()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nowe drzewo' }))
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Utwórz nowe drzewo' }),
+    )
+
+    const { tree } = useTreeStore.getState()
+    expect(tree.nodes[tree.rootId]?.label).toBe('Nowy węzeł')
   })
 
   it('renders translated shell text when the language changes', async () => {

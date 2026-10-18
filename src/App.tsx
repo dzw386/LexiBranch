@@ -10,13 +10,13 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PhyloEdge } from './components/canvas/PhyloEdge'
 import { PhyloNode } from './components/canvas/PhyloNode'
 import { localizeEdgeAriaLabels } from './components/canvas/localizeEdgeAriaLabels'
 import { ImportExportActions } from './components/dialogs/ImportExportActions'
 import { LoadExampleMenu } from './components/dialogs/LoadExampleMenu'
+import { NewTreeAction } from './components/dialogs/NewTreeAction'
 import { NodeDetailsPanel } from './components/panels/NodeDetailsPanel'
 import { Button } from './components/ui/button'
 import {
@@ -26,6 +26,7 @@ import {
 } from './domain/tree'
 import type { MetadataValue } from './domain/types'
 import { cn } from './lib/utils'
+import { AUTOSAVE_DELAY_MS, saveTree } from './state/persistence'
 import {
   layoutPhyloTree,
   type PhyloFlowEdge,
@@ -93,6 +94,7 @@ function App() {
   const pendingMoveNodeId = useTreeStore((state) => state.pendingMoveNodeId)
   const viewMode = useTreeStore((state) => state.viewMode)
   const selectNode = useTreeStore((state) => state.selectNode)
+  const newTree = useTreeStore((state) => state.newTree)
   const importTree = useTreeStore((state) => state.importTree)
   const setViewMode = useTreeStore((state) => state.setViewMode)
   const addChild = useTreeStore((state) => state.addChild)
@@ -114,6 +116,21 @@ function App() {
     PhyloFlowNode,
     PhyloFlowEdge
   > | null>(null)
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => saveTree(tree), AUTOSAVE_DELAY_MS)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [tree])
+
+  useEffect(() => {
+    function handlePageHide(): void {
+      saveTree(useTreeStore.getState().tree)
+    }
+
+    window.addEventListener('pagehide', handlePageHide)
+    return () => window.removeEventListener('pagehide', handlePageHide)
+  }, [])
 
   const { nodes: layoutNodes, edges } = useMemo(
     () =>
@@ -368,17 +385,7 @@ function App() {
               {t('phylogramMode')}
             </Button>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="px-2 sm:px-3"
-            aria-label={t('newTree')}
-            disabled
-          >
-            <Plus aria-hidden="true" />
-            <span className="hidden sm:inline">{t('newTree')}</span>
-          </Button>
+          <NewTreeAction onNewTree={() => newTree(t('newNode'))} />
           <LoadExampleMenu onLoadExample={importTree} />
           <ImportExportActions tree={tree} onImport={importTree} />
         </nav>

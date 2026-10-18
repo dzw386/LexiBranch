@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import {
   addChild as addChildToTree,
   addMetadata as addMetadataToTree,
+  createEmptyTree,
   createNode,
   moveSubtree as moveSubtreeInTree,
   removeMetadata as removeMetadataFromTree,
@@ -15,6 +16,7 @@ import {
 } from '../domain/tree'
 import type { MetadataValue, PhyloTree } from '../domain/types'
 import type { LayoutMode } from '../layout/layout'
+import { loadSavedTree } from './persistence'
 
 export type AddChildOptions = Omit<CreateNodeOptions, 'parentId'>
 
@@ -25,6 +27,7 @@ export interface TreeStore {
   viewMode: LayoutMode
   selectNode: (nodeId: string | null) => void
   setViewMode: (viewMode: LayoutMode) => void
+  newTree: (rootLabel: string) => void
   importTree: (tree: PhyloTree) => void
   addChild: (parentId: string, options?: AddChildOptions) => void
   removeSubtree: (nodeId: string) => void
@@ -90,8 +93,12 @@ export function createInitialTree(): PhyloTree {
   return tree
 }
 
+export function getInitialTree(): PhyloTree {
+  return loadSavedTree() ?? createInitialTree()
+}
+
 export const useTreeStore = create<TreeStore>((set) => ({
-  tree: createInitialTree(),
+  tree: getInitialTree(),
   selectedNodeId: null,
   pendingMoveNodeId: null,
   viewMode: 'cladogram',
@@ -99,6 +106,16 @@ export const useTreeStore = create<TreeStore>((set) => ({
   selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
 
   setViewMode: (viewMode) => set({ viewMode }),
+
+  newTree: (rootLabel) => {
+    const tree = createEmptyTree()
+
+    set({
+      tree: setLabelInTree(tree, tree.rootId, rootLabel),
+      selectedNodeId: null,
+      pendingMoveNodeId: null,
+    })
+  },
 
   importTree: (tree) =>
     set({ tree, selectedNodeId: null, pendingMoveNodeId: null }),
