@@ -21,6 +21,7 @@ import {
   AUTOSAVE_DELAY_MS,
   SAVED_PROJECT_STORAGE_KEY,
 } from './state/persistence'
+import { createTreeHistory } from './state/history'
 import { createInitialTree, getInitialTree, useTreeStore } from './state/store'
 import type { PhyloTree } from './domain/types'
 
@@ -69,6 +70,7 @@ describe('App', () => {
     vi.unstubAllGlobals()
     useTreeStore.setState({
       tree: createInitialTree(),
+      history: createTreeHistory(),
       selectedNodeId: null,
       pendingMoveNodeId: null,
       viewMode: 'cladogram',
@@ -192,6 +194,33 @@ describe('App', () => {
     window.dispatchEvent(new Event('pagehide'))
     expect(getInitialTree().nodes.germanic?.label).toBe('Last edit')
     expect(getInitialTree()).toEqual(useTreeStore.getState().tree)
+  })
+
+  it('undoes and redoes tree edits with Ctrl+Z and Ctrl+Shift+Z', () => {
+    mountApp()
+
+    act(() => useTreeStore.getState().setLabel('germanic', 'North Germanic'))
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    expect(useTreeStore.getState().tree.nodes.germanic?.label).toBe('Germanic')
+
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true, shiftKey: true })
+    expect(useTreeStore.getState().tree.nodes.germanic?.label).toBe(
+      'North Germanic',
+    )
+  })
+
+  it('leaves Ctrl+Z available to text inputs', async () => {
+    mountApp()
+
+    act(() => useTreeStore.getState().setLabel('germanic', 'North Germanic'))
+    fireEvent.click(await screen.findByText('North Germanic'))
+    const labelInput = await screen.findByLabelText('Label')
+
+    fireEvent.keyDown(labelInput, { key: 'z', ctrlKey: true })
+
+    expect(useTreeStore.getState().tree.nodes.germanic?.label).toBe(
+      'North Germanic',
+    )
   })
 
   it('creates a new tree with the translated root label after confirmation', async () => {

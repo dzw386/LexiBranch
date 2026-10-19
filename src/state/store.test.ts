@@ -6,12 +6,14 @@ import {
   MetadataOperationError,
   TreeOperationError,
 } from '../domain/tree'
-import { getInitialTree, useTreeStore } from './store'
+import { createInitialTree, getInitialTree, useTreeStore } from './store'
 import { saveTree } from './persistence'
+import { createTreeHistory } from './history'
 
 function resetStore(): void {
   useTreeStore.setState({
     tree: createEmptyTree(),
+    history: createTreeHistory(),
     selectedNodeId: null,
     pendingMoveNodeId: null,
     viewMode: 'cladogram',
@@ -57,6 +59,69 @@ describe('useTreeStore', () => {
       'branch',
     ])
     expect(useTreeStore.getState().selectedNodeId).toBe(rootId)
+  })
+
+  it('undoes and redoes every tree edit, including imports and deletions', () => {
+    useTreeStore.setState({
+      tree: createInitialTree(),
+      history: createTreeHistory(),
+    })
+    const rootId = useTreeStore.getState().tree.rootId
+
+    function expectUndoRedo(edit: () => void): void {
+      const previousTree = useTreeStore.getState().tree
+      edit()
+      const editedTree = useTreeStore.getState().tree
+
+      expect(editedTree).not.toBe(previousTree)
+
+      useTreeStore.getState().undo()
+      expect(useTreeStore.getState().tree).toBe(previousTree)
+
+      useTreeStore.getState().redo()
+      expect(useTreeStore.getState().tree).toBe(editedTree)
+    }
+
+    expectUndoRedo(() =>
+      useTreeStore.getState().setLabel('germanic', 'North Germanic'),
+    )
+    expectUndoRedo(() =>
+      useTreeStore.getState().setBranchLength('germanic', 0.9),
+    )
+    expectUndoRedo(() =>
+      useTreeStore.getState().addMetadata('germanic', 'iso', 'gm'),
+    )
+    expectUndoRedo(() =>
+      useTreeStore
+        .getState()
+        .updateMetadata('germanic', 'branch', 'group', 'West'),
+    )
+    expectUndoRedo(() =>
+      useTreeStore.getState().removeMetadata('germanic', 'group'),
+    )
+    expectUndoRedo(() =>
+      useTreeStore.getState().addChild(rootId, {
+        id: 'history-child',
+        label: 'History child',
+      }),
+    )
+    expectUndoRedo(() => {
+      useTreeStore.getState().startMoveSubtree('history-child')
+      useTreeStore.getState().completeMoveSubtree('slavic')
+    })
+    expectUndoRedo(() =>
+      useTreeStore.getState().reorderChild(rootId, 'slavic', 'up'),
+    )
+    expectUndoRedo(() => useTreeStore.getState().removeSubtree('history-child'))
+
+    const importedRoot = createNode({ id: 'imported-root', label: 'Imported' })
+    expectUndoRedo(() =>
+      useTreeStore.getState().importTree({
+        rootId: importedRoot.id,
+        nodes: { [importedRoot.id]: importedRoot },
+      }),
+    )
+    expectUndoRedo(() => useTreeStore.getState().newTree('New tree'))
   })
 
   it('keeps state unchanged when a domain operation fails', () => {

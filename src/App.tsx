@@ -66,6 +66,19 @@ interface NodeMeasurement {
   height: number
 }
 
+function isTextEditingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  return (
+    target.isContentEditable ||
+    target.tagName === 'INPUT' ||
+    target.tagName === 'TEXTAREA' ||
+    target.tagName === 'SELECT'
+  )
+}
+
 function App() {
   const { t, i18n } = useTranslation()
   const ariaLabelConfig = useMemo<AriaLabelConfig>(
@@ -122,6 +135,31 @@ function App() {
 
     return () => window.clearTimeout(timeoutId)
   }, [tree])
+
+  useEffect(() => {
+    function handleHistoryShortcut(event: KeyboardEvent): void {
+      if (
+        !(event.ctrlKey || event.metaKey) ||
+        event.altKey ||
+        event.key.toLowerCase() !== 'z' ||
+        isTextEditingTarget(event.target)
+      ) {
+        return
+      }
+
+      event.preventDefault()
+      const store = useTreeStore.getState()
+
+      if (event.shiftKey) {
+        store.redo()
+      } else {
+        store.undo()
+      }
+    }
+
+    window.addEventListener('keydown', handleHistoryShortcut)
+    return () => window.removeEventListener('keydown', handleHistoryShortcut)
+  }, [])
 
   useEffect(() => {
     function handlePageHide(): void {

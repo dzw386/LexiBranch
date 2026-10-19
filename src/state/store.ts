@@ -16,17 +16,27 @@ import {
 } from '../domain/tree'
 import type { MetadataValue, PhyloTree } from '../domain/types'
 import type { LayoutMode } from '../layout/layout'
+import {
+  createTreeHistory,
+  recordTreeChange,
+  redoTreeChange,
+  undoTreeChange,
+  type TreeHistory,
+} from './history'
 import { loadSavedTree } from './persistence'
 
 export type AddChildOptions = Omit<CreateNodeOptions, 'parentId'>
 
 export interface TreeStore {
   tree: PhyloTree
+  history: TreeHistory
   selectedNodeId: string | null
   pendingMoveNodeId: string | null
   viewMode: LayoutMode
   selectNode: (nodeId: string | null) => void
   setViewMode: (viewMode: LayoutMode) => void
+  undo: () => void
+  redo: () => void
   newTree: (rootLabel: string) => void
   importTree: (tree: PhyloTree) => void
   addChild: (parentId: string, options?: AddChildOptions) => void
@@ -49,6 +59,16 @@ export interface TreeStore {
   startMoveSubtree: (nodeId: string) => void
   cancelMoveSubtree: () => void
   completeMoveSubtree: (newParentId: string) => void
+}
+
+function updateTreeHistory(
+  state: TreeStore,
+  tree: PhyloTree,
+): Pick<TreeStore, 'tree' | 'history'> {
+  return {
+    tree,
+    history: recordTreeChange(state.history, state.tree, tree),
+  }
 }
 
 export function createInitialTree(): PhyloTree {
@@ -99,6 +119,7 @@ export function getInitialTree(): PhyloTree {
 
 export const useTreeStore = create<TreeStore>((set) => ({
   tree: getInitialTree(),
+  history: createTreeHistory(),
   selectedNodeId: null,
   pendingMoveNodeId: null,
   viewMode: 'cladogram',
@@ -107,18 +128,60 @@ export const useTreeStore = create<TreeStore>((set) => ({
 
   setViewMode: (viewMode) => set({ viewMode }),
 
+  undo: () =>
+    set((state) => {
+      const transition = undoTreeChange(state.history, state.tree)
+
+      if (transition === null) {
+        return state
+      }
+
+      return {
+        ...transition,
+        selectedNodeId:
+          state.selectedNodeId !== null &&
+          Object.hasOwn(transition.tree.nodes, state.selectedNodeId)
+            ? state.selectedNodeId
+            : null,
+        pendingMoveNodeId: null,
+      }
+    }),
+
+  redo: () =>
+    set((state) => {
+      const transition = redoTreeChange(state.history, state.tree)
+
+      if (transition === null) {
+        return state
+      }
+
+      return {
+        ...transition,
+        selectedNodeId:
+          state.selectedNodeId !== null &&
+          Object.hasOwn(transition.tree.nodes, state.selectedNodeId)
+            ? state.selectedNodeId
+            : null,
+        pendingMoveNodeId: null,
+      }
+    }),
+
   newTree: (rootLabel) => {
     const tree = createEmptyTree()
 
-    set({
-      tree: setLabelInTree(tree, tree.rootId, rootLabel),
+    set((state) => ({
+      ...updateTreeHistory(state, setLabelInTree(tree, tree.rootId, rootLabel)),
       selectedNodeId: null,
       pendingMoveNodeId: null,
-    })
+    }))
   },
 
   importTree: (tree) =>
-    set({ tree, selectedNodeId: null, pendingMoveNodeId: null }),
+    set((state) => ({
+      ...updateTreeHistory(state, tree),
+      selectedNodeId: null,
+      pendingMoveNodeId: null,
+    })),
 
   addChild: (parentId, options = {}) =>
     set((state) => {
@@ -126,7 +189,7 @@ export const useTreeStore = create<TreeStore>((set) => ({
       const childIds = tree.nodes[parentId]?.childIds
 
       return {
-        tree,
+        ...updateTreeHistory(state, tree),
         selectedNodeId: childIds?.at(-1),
       }
     }),
@@ -138,42 +201,61 @@ export const useTreeStore = create<TreeStore>((set) => ({
       const pendingMoveNodeId =
         state.pendingMoveNodeId === nodeId ? null : state.pendingMoveNodeId
 
-      return { tree, selectedNodeId: parentId, pendingMoveNodeId }
+      return {
+        ...updateTreeHistory(state, tree),
+        selectedNodeId: parentId,
+        pendingMoveNodeId,
+      }
     }),
 
   setLabel: (nodeId, label) =>
     set((state) => ({
-      tree: setLabelInTree(state.tree, nodeId, label),
+      ...updateTreeHistory(state, setLabelInTree(state.tree, nodeId, label)),
       selectedNodeId: nodeId,
     })),
 
   setBranchLength: (nodeId, branchLength) =>
     set((state) => ({
-      tree: setBranchLengthInTree(state.tree, nodeId, branchLength),
+      ...updateTreeHistory(
+        state,
+        setBranchLengthInTree(state.tree, nodeId, branchLength),
+      ),
       selectedNodeId: nodeId,
     })),
 
   addMetadata: (nodeId, key, value) =>
     set((state) => ({
-      tree: addMetadataToTree(state.tree, nodeId, key, value),
+      ...updateTreeHistory(
+        state,
+        addMetadataToTree(state.tree, nodeId, key, value),
+      ),
       selectedNodeId: nodeId,
     })),
 
   updateMetadata: (nodeId, previousKey, key, value) =>
     set((state) => ({
-      tree: updateMetadataInTree(state.tree, nodeId, previousKey, key, value),
+      ...updateTreeHistory(
+        state,
+        updateMetadataInTree(state.tree, nodeId, previousKey, key, value),
+      ),
       selectedNodeId: nodeId,
     })),
 
   removeMetadata: (nodeId, key) =>
     set((state) => ({
-      tree: removeMetadataFromTree(state.tree, nodeId, key),
+      ...updateTreeHistory(
+        state,
+        removeMetadataFromTree(state.tree, nodeId, key),
+      ),
       selectedNodeId: nodeId,
     })),
 
   reorderChild: (parentId, childId, direction) =>
     set((state) => ({
-      tree: reorderChildInTree(state.tree, parentId, childId, direction),
+      ...updateTreeHistory(
+        state,
+        reorderChildInTree(state.tree, parentId, childId, direction),
+      ),
       selectedNodeId: childId,
     })),
 
@@ -188,10 +270,9 @@ export const useTreeStore = create<TreeStore>((set) => ({
       }
 
       return {
-        tree: moveSubtreeInTree(
-          state.tree,
-          state.pendingMoveNodeId,
-          newParentId,
+        ...updateTreeHistory(
+          state,
+          moveSubtreeInTree(state.tree, state.pendingMoveNodeId, newParentId),
         ),
         selectedNodeId: state.pendingMoveNodeId,
         pendingMoveNodeId: null,
