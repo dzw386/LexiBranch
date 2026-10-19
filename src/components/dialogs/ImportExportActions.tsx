@@ -127,7 +127,7 @@ export function ImportExportActions({
         type="button"
         variant="outline"
         size="sm"
-        className="px-2 sm:px-3"
+        className="h-11 w-11 shrink-0 px-2 sm:h-8 sm:w-auto sm:px-3"
         aria-label={t('import')}
         title={t('importTreeFile')}
         onClick={() => fileInputRef.current?.click()}
@@ -139,7 +139,7 @@ export function ImportExportActions({
         type="button"
         variant="outline"
         size="sm"
-        className="px-2 sm:px-3"
+        className="h-11 w-11 shrink-0 px-2 sm:h-8 sm:w-auto sm:px-3"
         aria-label={t('export')}
         onClick={() => setExportDialogOpen(true)}
       >

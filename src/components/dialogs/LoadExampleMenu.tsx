@@ -64,7 +64,7 @@ export function LoadExampleMenu({ onLoadExample }: LoadExampleMenuProps) {
         type="button"
         variant="outline"
         size="sm"
-        className="px-2 sm:px-3"
+        className="h-11 w-11 shrink-0 px-2 sm:h-8 sm:w-auto sm:px-3"
         aria-label={t('loadExample')}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -72,7 +72,10 @@ export function LoadExampleMenu({ onLoadExample }: LoadExampleMenuProps) {
       >
         <BookOpen aria-hidden="true" />
         <span className="hidden sm:inline">{t('loadExample')}</span>
-        <ChevronDown aria-hidden="true" className="opacity-60" />
+        <ChevronDown
+          aria-hidden="true"
+          className="hidden opacity-60 sm:block"
+        />
       </Button>
 
       {open ? (
@@ -86,7 +89,7 @@ export function LoadExampleMenu({ onLoadExample }: LoadExampleMenuProps) {
               key={sample.id}
               type="button"
               role="menuitem"
-              className="flex w-full items-center rounded-sm px-2.5 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+              className="flex min-h-11 w-full items-center rounded-sm px-2.5 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
               onClick={() => handleSelect(sample.text)}
             >
               {t(SAMPLE_LABEL_KEYS[sample.id])}

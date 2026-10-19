@@ -4,6 +4,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
   waitFor,
 } from '@testing-library/react'
 import { XMLValidator } from 'fast-xml-parser'
@@ -139,6 +140,47 @@ describe('App', () => {
         .getByRole('button', { name: 'Cladogram' })
         .getAttribute('aria-pressed'),
     ).toBe('true')
+  })
+
+  it('provides a compact view selector and responsive sidebar controls', () => {
+    mountApp()
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'View mode' }), {
+      target: { value: 'phylogram' },
+    })
+    expect(useTreeStore.getState().viewMode).toBe('phylogram')
+
+    const sidebarToggles = screen.getAllByRole('button', {
+      name: 'Toggle tree tools sidebar',
+    })
+    const mobileToggle = sidebarToggles.find((button) =>
+      button.className.includes('md:hidden'),
+    )
+    const desktopToggle = sidebarToggles.find((button) =>
+      button.className.includes('md:inline-flex'),
+    )
+
+    if (mobileToggle === undefined || desktopToggle === undefined) {
+      throw new Error('Responsive sidebar controls were not rendered.')
+    }
+
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Tree tools sidebar',
+    })
+    expect(mobileToggle.getAttribute('aria-expanded')).toBe('false')
+    fireEvent.click(mobileToggle)
+    expect(mobileToggle.getAttribute('aria-expanded')).toBe('true')
+    expect(sidebar.className).toContain('absolute')
+    expect(document.querySelector('.react-flow')).not.toBeNull()
+
+    fireEvent.click(within(sidebar).getByRole('button', { name: 'Close' }))
+    expect(mobileToggle.getAttribute('aria-expanded')).toBe('false')
+
+    expect(desktopToggle.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(desktopToggle)
+    expect(desktopToggle.getAttribute('aria-expanded')).toBe('false')
+    expect(sidebar.className).not.toContain('md:flex')
+    expect(document.querySelector('.react-flow')).not.toBeNull()
   })
 
   it('switches the interface language immediately and persists the choice', async () => {

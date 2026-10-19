@@ -30,7 +30,7 @@ export function NewTreeAction({ onNewTree }: NewTreeActionProps) {
         type="button"
         variant="outline"
         size="sm"
-        className="px-2 sm:px-3"
+        className="h-11 w-11 shrink-0 px-2 sm:h-8 sm:w-auto sm:px-3"
         aria-label={t('newTree')}
         onClick={() => setConfirmOpen(true)}
       >

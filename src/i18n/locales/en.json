@@ -94,6 +94,7 @@
   "flowNodeMovedAnnouncement": "Moved selected node {{direction}}. New position, x: {{x}}, y: {{y}}.",
   "flowEdgeDescription": "This branch is not interactive.",
   "flowEdgeAriaLabel": "Branch connecting {{parent}} and {{child}}",
+  "toggleSidebar": "Toggle tree tools sidebar",
   "zoomIn": "Zoom In",
   "zoomOut": "Zoom Out",
   "fitView": "Fit View",

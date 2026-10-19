@@ -91,6 +91,36 @@
   }
 }
 
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.react-flow__pane {
+  touch-action: none;
+}
+
+@media (pointer: coarse) {
+  button,
+  input,
+  select {
+    min-height: 44px;
+  }
+
+  button,
+  .react-flow__controls-button {
+    min-width: 44px;
+  }
+
+  .react-flow__controls-button {
+    min-height: 44px;
+  }
+
+  .phylo-node {
+    min-height: 44px;
+  }
+}
+
 .phylo-edge__label {
   position: absolute;
   z-index: 1;

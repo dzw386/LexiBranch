@@ -95,6 +95,7 @@
   "flowNodeMovedAnnouncement": "Zaznaczony węzeł przesunięto {{direction}}. Nowa pozycja, x: {{x}}, y: {{y}}.",
   "flowEdgeDescription": "Ta gałąź nie jest interaktywna.",
   "flowEdgeAriaLabel": "Gałąź łącząca {{parent}} i {{child}}",
+  "toggleSidebar": "Pokaż lub ukryj panel narzędzi drzewa",
   "zoomIn": "Powiększ",
   "zoomOut": "Pomniejsz",
   "fitView": "Dopasuj widok",

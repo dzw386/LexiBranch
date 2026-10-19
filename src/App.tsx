@@ -9,6 +9,13 @@ import {
   type ReactFlowInstance,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import {
+  PanelBottomClose,
+  PanelBottomOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
+  X,
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PhyloEdge } from './components/canvas/PhyloEdge'
@@ -122,6 +129,8 @@ function App() {
   const cancelMoveSubtree = useTreeStore((state) => state.cancelMoveSubtree)
   const completeMoveSubtree = useTreeStore((state) => state.completeMoveSubtree)
   const [moveError, setMoveError] = useState<string | null>(null)
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [nodeMeasurements, setNodeMeasurements] = useState<
     Record<string, NodeMeasurement>
   >({})
@@ -363,42 +372,97 @@ function App() {
       : getSubtreeIds(tree, selectedTreeNode.id).length
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4 sm:px-6">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
-            {t('appMonogram')}
+    <div className="app-shell flex w-full flex-col overflow-hidden bg-background text-foreground">
+      <header className="relative z-40 flex shrink-0 flex-col gap-2 border-b bg-card px-3 py-2 sm:px-4 lg:h-14 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-6 lg:py-0">
+        <div className="flex min-w-0 items-center justify-between gap-3 lg:justify-start">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
+              {t('appMonogram')}
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-sm font-semibold tracking-tight">
+                {t('appName')}
+              </h1>
+              <p className="hidden truncate text-xs text-muted-foreground sm:block">
+                {t('appTagline')}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h1 className="truncate text-sm font-semibold tracking-tight">
-              {t('appName')}
-            </h1>
-            <p className="hidden truncate text-xs text-muted-foreground sm:block">
-              {t('appTagline')}
-            </p>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <label htmlFor="language-select" className="sr-only">
+              {t('language')}
+            </label>
+            <select
+              id="language-select"
+              value={i18n.resolvedLanguage ?? i18n.language}
+              onChange={(event) => {
+                void i18n.changeLanguage(event.currentTarget.value)
+              }}
+              className="h-11 max-w-28 rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-8 sm:max-w-none sm:text-sm"
+            >
+              <option value="en">{t('languageEnglish')}</option>
+              <option value="pl">{t('languagePolish')}</option>
+            </select>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-11 w-11 shrink-0 md:hidden"
+              aria-label={t('toggleSidebar')}
+              aria-expanded={mobileSidebarOpen}
+              aria-controls="tree-tools-sidebar"
+              onClick={() => setMobileSidebarOpen((open) => !open)}
+            >
+              {mobileSidebarOpen ? (
+                <PanelBottomClose aria-hidden="true" />
+              ) : (
+                <PanelBottomOpen aria-hidden="true" />
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="hidden h-9 w-9 shrink-0 md:inline-flex"
+              aria-label={t('toggleSidebar')}
+              aria-expanded={desktopSidebarOpen}
+              aria-controls="tree-tools-sidebar"
+              onClick={() => setDesktopSidebarOpen((open) => !open)}
+            >
+              {desktopSidebarOpen ? (
+                <PanelLeftClose aria-hidden="true" />
+              ) : (
+                <PanelLeftOpen aria-hidden="true" />
+              )}
+            </Button>
           </div>
         </div>
 
         <nav
-          className="flex shrink-0 items-center gap-2"
+          className="flex min-w-0 flex-wrap items-center justify-between gap-2 lg:shrink-0 lg:flex-nowrap"
           aria-label={t('workspaceActions')}
         >
-          <label htmlFor="language-select" className="sr-only">
-            {t('language')}
+          <label htmlFor="view-mode-select" className="sr-only">
+            {t('viewMode')}
           </label>
           <select
-            id="language-select"
-            value={i18n.resolvedLanguage ?? i18n.language}
-            onChange={(event) => {
-              void i18n.changeLanguage(event.currentTarget.value)
-            }}
-            className="h-8 rounded-md border border-input bg-background px-2 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            id="view-mode-select"
+            value={viewMode}
+            onChange={(event) =>
+              setViewMode(
+                event.currentTarget.value === 'phylogram'
+                  ? 'phylogram'
+                  : 'cladogram',
+              )
+            }
+            className="h-11 w-32 shrink-0 rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring lg:hidden"
           >
-            <option value="en">{t('languageEnglish')}</option>
-            <option value="pl">{t('languagePolish')}</option>
+            <option value="cladogram">{t('cladogramMode')}</option>
+            <option value="phylogram">{t('phylogramMode')}</option>
           </select>
           <div
-            className="hidden items-center gap-1 rounded-md border bg-background p-0.5 sm:flex"
+            className="hidden items-center gap-1 rounded-md border bg-background p-0.5 lg:flex"
             role="group"
             aria-label={t('viewMode')}
           >
@@ -423,17 +487,47 @@ function App() {
               {t('phylogramMode')}
             </Button>
           </div>
-          <NewTreeAction onNewTree={() => newTree(t('newNode'))} />
-          <LoadExampleMenu onLoadExample={importTree} />
-          <ImportExportActions tree={tree} onImport={importTree} />
+          <div className="flex shrink-0 items-center gap-1">
+            <NewTreeAction onNewTree={() => newTree(t('newNode'))} />
+            <LoadExampleMenu onLoadExample={importTree} />
+            <ImportExportActions tree={tree} onImport={importTree} />
+          </div>
         </nav>
       </header>
 
-      <main className="flex min-h-0 flex-1 overflow-hidden">
+      <main className="relative flex min-h-0 flex-1 overflow-hidden">
+        {mobileSidebarOpen ? (
+          <button
+            type="button"
+            className="absolute inset-0 z-20 cursor-default bg-black/30 md:hidden"
+            aria-label={t('close')}
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+        ) : null}
         <aside
-          className="hidden min-h-0 w-64 min-w-0 shrink-0 flex-col border-r bg-muted/20 p-4 md:flex"
+          id="tree-tools-sidebar"
+          className={cn(
+            'min-h-0 w-64 min-w-0 shrink-0 flex-col border-r bg-muted/20 p-4',
+            desktopSidebarOpen ? 'hidden md:flex' : 'hidden',
+            mobileSidebarOpen &&
+              'absolute inset-x-0 bottom-0 z-30 flex h-[75%] min-h-[15rem] max-h-[36rem] w-full rounded-t-xl border bg-card p-4 shadow-xl md:relative md:inset-auto md:h-auto md:min-h-0 md:max-h-none md:w-64 md:rounded-none md:border-y-0 md:border-l-0 md:bg-muted/20 md:p-4 md:shadow-none',
+          )}
           aria-label={t('treeToolsSidebar')}
         >
+          {mobileSidebarOpen ? (
+            <div className="mb-3 flex h-11 shrink-0 items-center justify-end md:hidden">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11"
+                aria-label={t('close')}
+                onClick={() => setMobileSidebarOpen(false)}
+              >
+                <X aria-hidden="true" />
+              </Button>
+            </div>
+          ) : null}
           <NodeDetailsPanel
             node={selectedNode}
             branchLength={selectedTreeNode?.branchLength ?? null}
@@ -477,6 +571,7 @@ function App() {
             onStartMove={() => {
               if (selectedNodeId !== null && selectedNodeId !== tree.rootId) {
                 setMoveError(null)
+                setMobileSidebarOpen(false)
                 startMoveSubtree(selectedNodeId)
               }
             }}
