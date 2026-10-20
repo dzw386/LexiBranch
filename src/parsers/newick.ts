@@ -1,4 +1,5 @@
 import type { MetadataValue, PhyloTree, TreeNodeData } from '../domain/types'
+import { newId } from '../lib/id'
 import { ParseError } from './parseError'
 
 export { ParseError }
@@ -307,7 +308,7 @@ export function parseWithNodeMetadata(
     parsedNode: ParsedNewickSyntaxNode,
     parentId: string | null,
   ): string {
-    const id = globalThis.crypto.randomUUID()
+    const id = newId()
     const childIds = parsedNode.children.map((child) => addNode(child, id))
 
     nodes[id] = {

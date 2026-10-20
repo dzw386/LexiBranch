@@ -1,5 +1,6 @@
 import { XMLParser, XMLValidator } from 'fast-xml-parser'
 import type { MetadataValue, PhyloTree, TreeNodeData } from '../domain/types'
+import { newId } from '../lib/id'
 import { ParseError } from './parseError'
 
 export { ParseError }
@@ -371,7 +372,7 @@ export function parse(text: string): PhyloTree {
 
   function addClade(value: unknown, parentId: string | null): string {
     const clade = requireRecord(value, 'Invalid <clade> element')
-    const id = globalThis.crypto.randomUUID()
+    const id = newId()
     const childIds = asArray(clade.clade).map((child) => addClade(child, id))
 
     nodes[id] = {

@@ -1,3 +1,4 @@
+import { newId } from '../lib/id'
 import type { MetadataValue, PhyloTree, TreeNodeData } from './types'
 
 export interface CreateNodeOptions {
@@ -45,7 +46,7 @@ function validateBranchLength(branchLength: number | null): void {
 }
 
 export function createNode({
-  id = globalThis.crypto.randomUUID(),
+  id = newId(),
   parentId = null,
   label = '',
   branchLength = null,
