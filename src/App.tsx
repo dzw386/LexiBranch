@@ -25,6 +25,7 @@ import { AboutDialog } from './components/dialogs/AboutDialog'
 import { ImportExportActions } from './components/dialogs/ImportExportActions'
 import { LoadExampleMenu } from './components/dialogs/LoadExampleMenu'
 import { NewTreeAction } from './components/dialogs/NewTreeAction'
+import { AnalysisPanel } from './components/panels/AnalysisPanel'
 import { NodeDetailsPanel } from './components/panels/NodeDetailsPanel'
 import { Button } from './components/ui/button'
 import { Toaster } from './components/ui/toast'
@@ -596,6 +597,7 @@ function App() {
               }
             }}
           />
+          <AnalysisPanel tree={tree} />
         </aside>
 
         <section

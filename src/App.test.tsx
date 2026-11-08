@@ -117,6 +117,21 @@ describe('App', () => {
     expect(markup).toContain('Phylogenetic tree canvas')
   })
 
+  it('renders the analysis section with tree statistics in the sidebar', () => {
+    mountApp()
+
+    const region = screen.getByRole('region', { name: 'Analysis' })
+    fireEvent.click(within(region).getByRole('button', { name: 'Analysis' }))
+
+    expect(within(region).getByText('Tree statistics')).toBeDefined()
+    expect(
+      within(region).getByText('Nodes').nextElementSibling?.textContent,
+    ).toBe('7')
+    expect(
+      within(region).getByText('Max depth').nextElementSibling?.textContent,
+    ).toBe('2')
+  })
+
   it('switches between cladogram and phylogram view modes', () => {
     mountApp()
 
