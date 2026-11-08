@@ -12,6 +12,7 @@ import {
   parse as parseNHX,
   serialize as serializeNHX,
 } from '../../parsers/nhx'
+import { useToastsStore } from '../../state/toasts'
 import { Button } from '../ui/button'
 import {
   Dialog,
@@ -21,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog'
+import { ConfirmDialog } from './ConfirmDialog'
 
 interface ImportExportActionsProps {
   tree: PhyloTree
@@ -44,9 +46,14 @@ export function ImportExportActions({
   onImport,
 }: ImportExportActionsProps) {
   const { t } = useTranslation()
+  const showToast = useToastsStore((state) => state.showToast)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importError, setImportError] = useState<ImportError | null>(null)
   const [importErrorDialogOpen, setImportErrorDialogOpen] = useState(false)
+  const [pendingImport, setPendingImport] = useState<{
+    tree: PhyloTree
+    fileName: string
+  } | null>(null)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<ExportFormat>('newick')
   const hasMetadata = Object.values(tree.nodes).some(
@@ -71,7 +78,7 @@ export function ImportExportActions({
       const importedTree = isPhyloXmlFile(file)
         ? parsePhyloXml(contents)
         : parseNHX(contents)
-      onImport(importedTree)
+      setPendingImport({ tree: importedTree, fileName: file.name })
     } catch (error) {
       if (error instanceof ParseError) {
         setImportError({
@@ -86,6 +93,20 @@ export function ImportExportActions({
       setImportError({ type: 'read', fileName: file.name })
       setImportErrorDialogOpen(true)
     }
+  }
+
+  function confirmImport(): void {
+    if (pendingImport === null) {
+      return
+    }
+
+    onImport(pendingImport.tree)
+    showToast({
+      variant: 'success',
+      messageKey: 'toastImportSuccess',
+      params: { fileName: pendingImport.fileName },
+    })
+    setPendingImport(null)
   }
 
   function handleDownload(): void {
@@ -109,6 +130,11 @@ export function ImportExportActions({
     link.remove()
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
     setExportDialogOpen(false)
+    showToast({
+      variant: 'success',
+      messageKey: 'toastExportSuccess',
+      params: { fileName: link.download },
+    })
   }
 
   return (
@@ -237,6 +263,22 @@ export function ImportExportActions({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={pendingImport !== null}
+        title={t('importConfirmTitle', {
+          fileName: pendingImport?.fileName ?? '',
+        })}
+        description={t('importConfirmDescription')}
+        confirmLabel={t('confirmImport')}
+        destructive
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingImport(null)
+          }
+        }}
+        onConfirm={confirmImport}
+      />
     </>
   )
 }

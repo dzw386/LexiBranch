@@ -2,14 +2,7 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '../ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog'
+import { ConfirmDialog } from './ConfirmDialog'
 
 export interface NewTreeActionProps {
   onNewTree: () => void
@@ -18,11 +11,6 @@ export interface NewTreeActionProps {
 export function NewTreeAction({ onNewTree }: NewTreeActionProps) {
   const { t } = useTranslation()
   const [confirmOpen, setConfirmOpen] = useState(false)
-
-  function confirmNewTree(): void {
-    onNewTree()
-    setConfirmOpen(false)
-  }
 
   return (
     <>
@@ -38,30 +26,15 @@ export function NewTreeAction({ onNewTree }: NewTreeActionProps) {
         <span className="hidden sm:inline">{t('newTree')}</span>
       </Button>
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('newTreeTitle')}</DialogTitle>
-            <DialogDescription>{t('newTreeDescription')}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setConfirmOpen(false)}
-            >
-              {t('cancel')}
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={confirmNewTree}
-            >
-              {t('confirmNewTree')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={confirmOpen}
+        title={t('newTreeTitle')}
+        description={t('newTreeDescription')}
+        confirmLabel={t('confirmNewTree')}
+        destructive
+        onOpenChange={setConfirmOpen}
+        onConfirm={onNewTree}
+      />
     </>
   )
 }

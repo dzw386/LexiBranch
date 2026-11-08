@@ -21,11 +21,13 @@ import { useTranslation } from 'react-i18next'
 import { PhyloEdge } from './components/canvas/PhyloEdge'
 import { PhyloNode } from './components/canvas/PhyloNode'
 import { localizeEdgeAriaLabels } from './components/canvas/localizeEdgeAriaLabels'
+import { AboutDialog } from './components/dialogs/AboutDialog'
 import { ImportExportActions } from './components/dialogs/ImportExportActions'
 import { LoadExampleMenu } from './components/dialogs/LoadExampleMenu'
 import { NewTreeAction } from './components/dialogs/NewTreeAction'
 import { NodeDetailsPanel } from './components/panels/NodeDetailsPanel'
 import { Button } from './components/ui/button'
+import { Toaster } from './components/ui/toast'
 import {
   getSubtreeIds,
   TreeOperationError,
@@ -34,6 +36,7 @@ import {
 import type { MetadataValue } from './domain/types'
 import { cn } from './lib/utils'
 import { AUTOSAVE_DELAY_MS, saveTree } from './state/persistence'
+import { useToastsStore } from './state/toasts'
 import {
   layoutPhyloTree,
   type PhyloFlowEdge,
@@ -128,6 +131,7 @@ function App() {
   const startMoveSubtree = useTreeStore((state) => state.startMoveSubtree)
   const cancelMoveSubtree = useTreeStore((state) => state.cancelMoveSubtree)
   const completeMoveSubtree = useTreeStore((state) => state.completeMoveSubtree)
+  const showToast = useToastsStore((state) => state.showToast)
   const [moveError, setMoveError] = useState<string | null>(null)
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
@@ -140,10 +144,18 @@ function App() {
   > | null>(null)
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => saveTree(tree), AUTOSAVE_DELAY_MS)
+    const timeoutId = window.setTimeout(() => {
+      if (!saveTree(tree)) {
+        showToast({
+          variant: 'error',
+          messageKey: 'toastAutosaveError',
+          dedupeKey: 'autosave',
+        })
+      }
+    }, AUTOSAVE_DELAY_MS)
 
     return () => window.clearTimeout(timeoutId)
-  }, [tree])
+  }, [tree, showToast])
 
   useEffect(() => {
     function handleHistoryShortcut(event: KeyboardEvent): void {
@@ -240,6 +252,7 @@ function App() {
     selectedNodeId === null ? undefined : tree.nodes[selectedNodeId]
   const isRootSelected =
     selectedNodeId !== null && selectedNodeId === tree.rootId
+  const isTreeEmpty = Object.keys(tree.nodes).length === 1
   const pendingMoveNode =
     pendingMoveNodeId === null ? undefined : tree.nodes[pendingMoveNodeId]
 
@@ -404,6 +417,7 @@ function App() {
               <option value="en">{t('languageEnglish')}</option>
               <option value="pl">{t('languagePolish')}</option>
             </select>
+            <AboutDialog />
             <Button
               type="button"
               variant="outline"
@@ -588,6 +602,16 @@ function App() {
           className="relative min-h-0 min-w-0 flex-1"
           aria-label={t('phylogeneticTreeCanvas')}
         >
+          {isTreeEmpty ? (
+            <p
+              role="status"
+              className="pointer-events-none absolute inset-x-0 top-0 z-10 px-4 pt-3 text-center"
+            >
+              <span className="inline-block rounded-md border bg-card px-3 py-2 text-sm text-muted-foreground shadow-sm">
+                {t('emptyTreeHint')}
+              </span>
+            </p>
+          ) : null}
           {pendingMoveNode !== undefined ? (
             <div
               role="status"
@@ -655,6 +679,7 @@ function App() {
           </ReactFlow>
         </section>
       </main>
+      <Toaster />
     </div>
   )
 }

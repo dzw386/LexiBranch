@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next'
 import type { PhyloTree } from '../../domain/types'
 import { parse as parsePhyloXml } from '../../parsers/phyloxml'
 import { SAMPLES, type SampleId } from '../../parsers/samples'
+import { useToastsStore } from '../../state/toasts'
 import { Button } from '../ui/button'
+import { ConfirmDialog } from './ConfirmDialog'
 
 interface LoadExampleMenuProps {
   onLoadExample: (tree: PhyloTree) => void
@@ -20,7 +22,12 @@ const SAMPLE_LABEL_KEYS: Record<SampleId, string> = {
 
 export function LoadExampleMenu({ onLoadExample }: LoadExampleMenuProps) {
   const { t } = useTranslation()
+  const showToast = useToastsStore((state) => state.showToast)
   const [open, setOpen] = useState(false)
+  const [pendingSample, setPendingSample] = useState<{
+    tree: PhyloTree
+    name: string
+  } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -52,10 +59,24 @@ export function LoadExampleMenu({ onLoadExample }: LoadExampleMenuProps) {
     }
   }, [open])
 
-  function handleSelect(text: string): void {
+  function handleSelect(text: string, name: string): void {
     const importedTree = parsePhyloXml(text)
-    onLoadExample(importedTree)
+    setPendingSample({ tree: importedTree, name })
     setOpen(false)
+  }
+
+  function confirmLoadExample(): void {
+    if (pendingSample === null) {
+      return
+    }
+
+    onLoadExample(pendingSample.tree)
+    showToast({
+      variant: 'success',
+      messageKey: 'toastExampleLoaded',
+      params: { name: pendingSample.name },
+    })
+    setPendingSample(null)
   }
 
   return (
@@ -90,13 +111,31 @@ export function LoadExampleMenu({ onLoadExample }: LoadExampleMenuProps) {
               type="button"
               role="menuitem"
               className="flex min-h-11 w-full items-center rounded-sm px-2.5 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-              onClick={() => handleSelect(sample.text)}
+              onClick={() =>
+                handleSelect(sample.text, t(SAMPLE_LABEL_KEYS[sample.id]))
+              }
             >
               {t(SAMPLE_LABEL_KEYS[sample.id])}
             </button>
           ))}
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={pendingSample !== null}
+        title={t('loadExampleConfirmTitle', {
+          name: pendingSample?.name ?? '',
+        })}
+        description={t('loadExampleConfirmDescription')}
+        confirmLabel={t('confirmLoadExample')}
+        destructive
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingSample(null)
+          }
+        }}
+        onConfirm={confirmLoadExample}
+      />
     </div>
   )
 }

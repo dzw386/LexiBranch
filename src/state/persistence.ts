@@ -142,9 +142,9 @@ export function loadSavedTree(
 export function saveTree(
   tree: PhyloTree,
   storage: Storage | null = getLocalStorage(),
-): void {
+): boolean {
   if (storage === null) {
-    return
+    return false
   }
 
   try {
@@ -152,7 +152,10 @@ export function saveTree(
       SAVED_PROJECT_STORAGE_KEY,
       JSON.stringify({ appVersion: packageJson.version, tree }),
     )
+    return true
   } catch {
-    // Autosave is best-effort when browser storage is unavailable or full.
+    // Autosave is best-effort when browser storage is unavailable or full;
+    // callers surface the failure to the user.
+    return false
   }
 }

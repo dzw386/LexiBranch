@@ -24,6 +24,7 @@ import {
 } from './state/persistence'
 import { createTreeHistory } from './state/history'
 import { createInitialTree, getInitialTree, useTreeStore } from './state/store'
+import { useToastsStore } from './state/toasts'
 import type { PhyloTree } from './domain/types'
 
 function renderApp() {
@@ -69,6 +70,7 @@ describe('App', () => {
     vi.useRealTimers()
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
+    useToastsStore.setState({ toasts: [] })
     useTreeStore.setState({
       tree: createInitialTree(),
       history: createTreeHistory(),
@@ -355,6 +357,7 @@ describe('App', () => {
 
   it('imports a Newick file and replaces the tree in the canvas', async () => {
     mountApp()
+    const originalTree = useTreeStore.getState().tree
 
     const fileInput =
       document.querySelector<HTMLInputElement>('input[type="file"]')
@@ -368,6 +371,11 @@ describe('App', () => {
     )
 
     expect(inputClick).toHaveBeenCalledTimes(1)
+    const confirmDialog = await screen.findByRole('dialog')
+    expect(confirmDialog.textContent).toContain('languages.nwk')
+    expect(useTreeStore.getState().tree).toBe(originalTree)
+    fireEvent.click(screen.getByRole('button', { name: 'Import tree' }))
+
     await waitFor(() => {
       const tree = useTreeStore.getState().tree
       expect(Object.keys(tree.nodes)).toHaveLength(3)
@@ -377,12 +385,14 @@ describe('App', () => {
     })
     expect(useTreeStore.getState().selectedNodeId).toBeNull()
     expect(await screen.findByText('Proto')).toBeDefined()
+    expect(await screen.findByText('Imported “languages.nwk”.')).toBeDefined()
   })
 
   it('imports NHX metadata and shows it in the node details panel', async () => {
     mountApp()
 
     importFile(createTextFile('languages.nhx', metadataNhx))
+    fireEvent.click(await screen.findByRole('button', { name: 'Import tree' }))
 
     await waitFor(() => {
       const tree = useTreeStore.getState().tree
@@ -412,6 +422,7 @@ describe('App', () => {
     expect(fileInput.accept).toContain('.phyloxml')
 
     importFile(createTextFile('languages.xml', languagesPhyloXml))
+    fireEvent.click(await screen.findByRole('button', { name: 'Import tree' }))
 
     await waitFor(() => {
       const tree = useTreeStore.getState().tree
@@ -439,11 +450,16 @@ describe('App', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Load example' }))
       const menuItems = screen.getAllByRole('menuitem')
       expect(menuItems).toHaveLength(SAMPLES.length)
+      const sampleName = menuItems[index]!.textContent ?? ''
       fireEvent.click(menuItems[index]!)
 
       const expectedTree = parsePhyloXml(sample.text)
       const expectedRootLabel =
         expectedTree.nodes[expectedTree.rootId]?.label ?? ''
+
+      const confirmDialog = await screen.findByRole('dialog')
+      expect(confirmDialog.textContent).toContain(sampleName)
+      fireEvent.click(screen.getByRole('button', { name: 'Load this example' }))
 
       await waitFor(() => {
         const { tree, selectedNodeId } = useTreeStore.getState()
@@ -484,6 +500,7 @@ describe('App', () => {
     importFile(
       createTextFile('languages.nwk', '(English:0.4,Polish:0.3)Proto;'),
     )
+    fireEvent.click(await screen.findByRole('button', { name: 'Import tree' }))
 
     await waitFor(() =>
       expect(Object.keys(useTreeStore.getState().tree.nodes)).toHaveLength(3),
@@ -936,5 +953,78 @@ describe('App', () => {
         .getByRole('button', { name: 'Add child' })
         .hasAttribute('disabled'),
     ).toBe(false)
+  })
+
+  it('keeps the current tree when the import confirmation is cancelled', async () => {
+    mountApp()
+    const originalTree = useTreeStore.getState().tree
+
+    importFile(
+      createTextFile('languages.nwk', '(English:0.4,Polish:0.3)Proto;'),
+    )
+    const confirmDialog = await screen.findByRole('dialog')
+    expect(confirmDialog.textContent).toContain('languages.nwk')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(useTreeStore.getState().tree).toBe(originalTree)
+  })
+
+  it('shows a success toast after export and lets it be dismissed', async () => {
+    const createObjectURL = vi
+      .fn<(blob: Blob) => string>()
+      .mockReturnValue('blob:lexibranch')
+    vi.stubGlobal('URL', {
+      createObjectURL,
+      revokeObjectURL: vi.fn<(url: string) => void>(),
+    })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    mountApp()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }))
+
+    const toast = await screen.findByText('Downloaded “tree.nwk”.')
+    expect(toast.closest('[role="status"]')).not.toBeNull()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dismiss notification' }),
+    )
+    await waitFor(() =>
+      expect(screen.queryByText('Downloaded “tree.nwk”.')).toBeNull(),
+    )
+  })
+
+  it('warns when autosave to browser storage fails', async () => {
+    vi.useFakeTimers()
+    vi.spyOn(window.localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('quota exceeded')
+    })
+    mountApp()
+
+    act(() => useTreeStore.getState().setLabel('germanic', 'Unsaved label'))
+    act(() => vi.advanceTimersByTime(AUTOSAVE_DELAY_MS))
+
+    expect(
+      screen.getByText(
+        "Couldn't save your work to browser storage. Export your tree to keep a copy.",
+      ),
+    ).toBeDefined()
+  })
+
+  it('shows an empty-tree hint when the tree has only a root node', async () => {
+    mountApp()
+
+    expect(
+      screen.queryByText('Add a child node to start building your tree.'),
+    ).toBeNull()
+
+    act(() => useTreeStore.getState().newTree('Root'))
+
+    expect(
+      await screen.findByText('Add a child node to start building your tree.'),
+    ).toBeDefined()
   })
 })

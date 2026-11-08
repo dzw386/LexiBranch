@@ -2,15 +2,8 @@ import { useState } from 'react'
 import { Move, MoveDown, MoveUp, Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { ReorderDirection } from '../../domain/tree'
+import { ConfirmDialog } from '../dialogs/ConfirmDialog'
 import { Button } from '../ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog'
 
 export interface NodeStructureActionsProps {
   label: string
@@ -41,7 +34,6 @@ export function NodeStructureActions({
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   function confirmDelete(): void {
-    setConfirmOpen(false)
     onRemoveSubtree()
   }
 
@@ -121,28 +113,18 @@ export function NodeStructureActions({
         </p>
       ) : null}
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('deleteSubtreeTitle', { label })}</DialogTitle>
-            <DialogDescription>
-              {t('deleteSubtreeDescription', { label, count: subtreeSize })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setConfirmOpen(false)}
-            >
-              {t('cancel')}
-            </Button>
-            <Button type="button" variant="destructive" onClick={confirmDelete}>
-              {t('confirmDelete')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={confirmOpen}
+        title={t('deleteSubtreeTitle', { label })}
+        description={t('deleteSubtreeDescription', {
+          label,
+          count: subtreeSize,
+        })}
+        confirmLabel={t('confirmDelete')}
+        destructive
+        onOpenChange={setConfirmOpen}
+        onConfirm={confirmDelete}
+      />
     </section>
   )
 }
