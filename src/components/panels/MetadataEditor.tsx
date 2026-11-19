@@ -86,6 +86,7 @@ function MetadataEntryRow({
   const [error, setError] = useState<MetadataValidationError | undefined>()
   const keyId = getFieldId('metadata-key', metadataKey)
   const valueId = getFieldId('metadata-value', metadataKey)
+  const errorId = getFieldId('metadata-error', metadataKey)
 
   function handleSave(): void {
     const normalizedKey = key.trim()
@@ -139,6 +140,7 @@ function MetadataEntryRow({
               error === 'metadataKeyRequired' ||
               error === 'metadataDuplicateKey'
             }
+            aria-describedby={error === undefined ? undefined : errorId}
             className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
           />
           <div className="flex shrink-0 gap-1">
@@ -202,6 +204,7 @@ function MetadataEntryRow({
                 id={valueId}
                 value={rawValue}
                 disabled={disabled}
+                aria-describedby={error === undefined ? undefined : errorId}
                 onChange={(event) => {
                   setRawValue(event.currentTarget.value)
                   setError(undefined)
@@ -223,13 +226,18 @@ function MetadataEntryRow({
                   setError(undefined)
                 }}
                 aria-invalid={error === 'metadataNumberInvalid'}
+                aria-describedby={error === undefined ? undefined : errorId}
                 className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
               />
             )}
           </div>
         </div>
         {error !== undefined ? (
-          <p role="alert" className="mt-1 text-[11px] text-destructive">
+          <p
+            id={errorId}
+            role="alert"
+            className="mt-1 text-[11px] text-destructive"
+          >
             {t(error)}
           </p>
         ) : null}
@@ -302,6 +310,9 @@ function MetadataAddForm({
               error === 'metadataKeyRequired' ||
               error === 'metadataDuplicateKey'
             }
+            aria-describedby={
+              error === undefined ? undefined : 'new-metadata-error'
+            }
             className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
           />
         </div>
@@ -360,12 +371,19 @@ function MetadataAddForm({
               setError(undefined)
             }}
             aria-invalid={error === 'metadataNumberInvalid'}
+            aria-describedby={
+              error === undefined ? undefined : 'new-metadata-error'
+            }
             className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
           />
         )}
       </div>
       {error !== undefined ? (
-        <p role="alert" className="text-xs text-destructive">
+        <p
+          id="new-metadata-error"
+          role="alert"
+          className="text-xs text-destructive"
+        >
           {t(error)}
         </p>
       ) : null}

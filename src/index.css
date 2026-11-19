@@ -100,6 +100,12 @@
   touch-action: none;
 }
 
+.react-flow__node:focus-visible,
+.react-flow__controls-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 @media (pointer: coarse) {
   button,
   input,

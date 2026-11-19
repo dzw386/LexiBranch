@@ -26,4 +26,16 @@ describe('i18n initialization', () => {
 
     expect(i18n.language).toBe('pl')
   })
+
+  it('keeps the document language in sync with the interface language', async () => {
+    window.localStorage.setItem('lexibranch-language', 'pl')
+
+    const { default: i18n } = await import('./index')
+
+    expect(document.documentElement.lang).toBe('pl')
+
+    await i18n.changeLanguage('en')
+
+    expect(document.documentElement.lang).toBe('en')
+  })
 })

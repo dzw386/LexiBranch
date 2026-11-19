@@ -143,6 +143,16 @@ function App() {
     PhyloFlowNode,
     PhyloFlowEdge
   > | null>(null)
+  const mobileSidebarToggleRef = useRef<HTMLButtonElement>(null)
+  const mobileSidebarCloseRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!mobileSidebarOpen) {
+      return
+    }
+
+    mobileSidebarCloseRef.current?.focus()
+  }, [mobileSidebarOpen])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -273,6 +283,22 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [pendingMoveNodeId, cancelMoveSubtree])
 
+  useEffect(() => {
+    if (!mobileSidebarOpen) {
+      return
+    }
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === 'Escape' && !event.defaultPrevented) {
+        setMobileSidebarOpen(false)
+        mobileSidebarToggleRef.current?.focus()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [mobileSidebarOpen])
+
   const handleNodesChange = useCallback(
     (changes: NodeChange<PhyloFlowNode>[]) => {
       if (changes.some((change) => change.type === 'dimensions')) {
@@ -362,6 +388,15 @@ function App() {
     cancelMoveSubtree()
   }
 
+  function closeMobileSidebar(): void {
+    if (!mobileSidebarOpen) {
+      return
+    }
+
+    setMobileSidebarOpen(false)
+    mobileSidebarToggleRef.current?.focus()
+  }
+
   function handleReorder(direction: ReorderDirection): void {
     if (
       selectedNodeId === null ||
@@ -420,6 +455,7 @@ function App() {
             </select>
             <AboutDialog />
             <Button
+              ref={mobileSidebarToggleRef}
               type="button"
               variant="outline"
               size="icon"
@@ -512,11 +548,10 @@ function App() {
 
       <main className="relative flex min-h-0 flex-1 overflow-hidden">
         {mobileSidebarOpen ? (
-          <button
-            type="button"
+          <div
+            aria-hidden="true"
             className="absolute inset-0 z-20 cursor-default bg-black/30 md:hidden"
-            aria-label={t('close')}
-            onClick={() => setMobileSidebarOpen(false)}
+            onClick={closeMobileSidebar}
           />
         ) : null}
         <aside
@@ -532,12 +567,13 @@ function App() {
           {mobileSidebarOpen ? (
             <div className="mb-3 flex h-11 shrink-0 items-center justify-end md:hidden">
               <Button
+                ref={mobileSidebarCloseRef}
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="h-11 w-11"
                 aria-label={t('close')}
-                onClick={() => setMobileSidebarOpen(false)}
+                onClick={closeMobileSidebar}
               >
                 <X aria-hidden="true" />
               </Button>
@@ -586,7 +622,7 @@ function App() {
             onStartMove={() => {
               if (selectedNodeId !== null && selectedNodeId !== tree.rootId) {
                 setMoveError(null)
-                setMobileSidebarOpen(false)
+                closeMobileSidebar()
                 startMoveSubtree(selectedNodeId)
               }
             }}

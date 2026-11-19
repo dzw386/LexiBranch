@@ -200,6 +200,36 @@ describe('App', () => {
     expect(document.querySelector('.react-flow')).not.toBeNull()
   })
 
+  it('moves focus into the mobile sidebar and closes it with Escape', async () => {
+    mountApp()
+
+    const sidebarToggles = screen.getAllByRole('button', {
+      name: 'Toggle tree tools sidebar',
+    })
+    const mobileToggle = sidebarToggles.find((button) =>
+      button.className.includes('md:hidden'),
+    )
+
+    if (mobileToggle === undefined) {
+      throw new Error('The mobile sidebar toggle was not rendered.')
+    }
+
+    fireEvent.click(mobileToggle)
+
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Tree tools sidebar',
+    })
+    const closeButton = within(sidebar).getByRole('button', { name: 'Close' })
+    await waitFor(() => expect(document.activeElement).toBe(closeButton))
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    await waitFor(() =>
+      expect(mobileToggle.getAttribute('aria-expanded')).toBe('false'),
+    )
+    expect(document.activeElement).toBe(mobileToggle)
+  })
+
   it('switches the interface language immediately and persists the choice', async () => {
     mountApp()
 

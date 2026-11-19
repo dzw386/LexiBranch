@@ -135,5 +135,9 @@
   "aboutVersionLabel": "Wersja",
   "aboutFormatsLabel": "Obsługiwane formaty",
   "aboutFormats": "Newick (.nwk), NHX (.nhx), phyloXML (.xml)",
-  "aboutLocalNote": "Działa w całości w przeglądarce — Twoje drzewa nie opuszczają tego urządzenia."
+  "aboutLocalNote": "Działa w całości w przeglądarce — Twoje drzewa nie opuszczają tego urządzenia.",
+  "errorBoundaryTitle": "Coś poszło nie tak",
+  "errorBoundaryDescription": "Aplikacja napotkała nieoczekiwany błąd. Przeładuj aplikację, aby kontynuować.",
+  "errorBoundaryReload": "Przeładuj aplikację",
+  "errorBoundaryTryAgain": "Spróbuj ponownie"
 }

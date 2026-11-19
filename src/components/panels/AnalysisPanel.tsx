@@ -54,7 +54,7 @@ export function AnalysisPanel({
       <h2 id="analysis-heading">
         <button
           type="button"
-          className="flex w-full items-center justify-between gap-2 text-left"
+          className="flex w-full items-center justify-between gap-2 rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           aria-expanded={isOpen}
           aria-controls={isOpen ? 'analysis-content' : undefined}
           onClick={() => setIsOpen((open) => !open)}

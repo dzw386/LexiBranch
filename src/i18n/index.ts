@@ -14,6 +14,14 @@ function getSupportedLanguage(
   return baseLanguage === 'en' || baseLanguage === 'pl' ? baseLanguage : null
 }
 
+function applyDocumentLanguage(language: SupportedLanguage): void {
+  if (typeof document === 'undefined') {
+    return
+  }
+
+  document.documentElement.lang = language
+}
+
 function getInitialLanguage(): SupportedLanguage {
   try {
     const storedLanguage =
@@ -38,12 +46,16 @@ function getInitialLanguage(): SupportedLanguage {
   )
 }
 
+const initialLanguage = getInitialLanguage()
+
+applyDocumentLanguage(initialLanguage)
+
 void i18n.use(initReactI18next).init({
   resources: {
     en: { translation: en },
     pl: { translation: pl },
   },
-  lng: getInitialLanguage(),
+  lng: initialLanguage,
   fallbackLng: 'en',
   supportedLngs: ['en', 'pl'],
   interpolation: {
@@ -54,7 +66,13 @@ void i18n.use(initReactI18next).init({
 i18n.on('languageChanged', (language) => {
   const supportedLanguage = getSupportedLanguage(language)
 
-  if (supportedLanguage === null || typeof window === 'undefined') {
+  if (supportedLanguage === null) {
+    return
+  }
+
+  applyDocumentLanguage(supportedLanguage)
+
+  if (typeof window === 'undefined') {
     return
   }
 

@@ -134,5 +134,9 @@
   "aboutVersionLabel": "Version",
   "aboutFormatsLabel": "Supported formats",
   "aboutFormats": "Newick (.nwk), NHX (.nhx), phyloXML (.xml)",
-  "aboutLocalNote": "Runs entirely in your browser — your trees never leave this device."
+  "aboutLocalNote": "Runs entirely in your browser — your trees never leave this device.",
+  "errorBoundaryTitle": "Something went wrong",
+  "errorBoundaryDescription": "The application hit an unexpected error. Reload the app to continue.",
+  "errorBoundaryReload": "Reload the application",
+  "errorBoundaryTryAgain": "Try again"
 }
