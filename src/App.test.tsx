@@ -27,6 +27,12 @@ import { createInitialTree, getInitialTree, useTreeStore } from './state/store'
 import { useToastsStore } from './state/toasts'
 import type { PhyloTree } from './domain/types'
 
+const imageExportMock = vi.hoisted(() => ({
+  exportTreeImage: vi.fn(async () => 'data:image/png;base64,cG5n'),
+}))
+
+vi.mock('./components/canvas/exportImage', () => imageExportMock)
+
 function renderApp() {
   return renderToStaticMarkup(
     <I18nextProvider i18n={i18n}>
@@ -69,6 +75,9 @@ describe('App', () => {
     cleanup()
     vi.useRealTimers()
     vi.restoreAllMocks()
+    imageExportMock.exportTreeImage
+      .mockReset()
+      .mockImplementation(async () => 'data:image/png;base64,cG5n')
     vi.unstubAllGlobals()
     useToastsStore.setState({ toasts: [] })
     useTreeStore.setState({
@@ -695,6 +704,91 @@ describe('App', () => {
     await waitFor(() =>
       expect(revokeObjectURL).toHaveBeenCalledWith('blob:lexibranch-phyloxml'),
     )
+  })
+
+  it('exports the tree view as a PNG image from the format picker', async () => {
+    imageExportMock.exportTreeImage.mockClear()
+    const anchorClick = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {
+        expect(
+          document.querySelector<HTMLAnchorElement>('a[download]')?.download,
+        ).toBe('tree.png')
+      })
+
+    mountApp()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'File format' }), {
+      target: { value: 'png' },
+    })
+    expect(screen.getByText('The image shows the whole tree.')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }))
+
+    await waitFor(() =>
+      expect(imageExportMock.exportTreeImage).toHaveBeenCalledTimes(1),
+    )
+    expect(imageExportMock.exportTreeImage).toHaveBeenCalledWith({
+      nodes: expect.any(Array),
+      edges: expect.any(Array),
+      format: 'png',
+    })
+    expect(anchorClick).toHaveBeenCalledTimes(1)
+    expect(await screen.findByText('Downloaded “tree.png”.')).toBeDefined()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('exports the tree view as an SVG image from the format picker', async () => {
+    imageExportMock.exportTreeImage
+      .mockClear()
+      .mockResolvedValueOnce('data:image/svg+xml;charset=utf-8,%3Csvg%20%2F%3E')
+    const anchorClick = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {
+        expect(
+          document.querySelector<HTMLAnchorElement>('a[download]')?.download,
+        ).toBe('tree.svg')
+      })
+
+    mountApp()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'File format' }), {
+      target: { value: 'svg' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }))
+
+    await waitFor(() =>
+      expect(imageExportMock.exportTreeImage).toHaveBeenCalledWith({
+        nodes: expect.any(Array),
+        edges: expect.any(Array),
+        format: 'svg',
+      }),
+    )
+    expect(anchorClick).toHaveBeenCalledTimes(1)
+    expect(await screen.findByText('Downloaded “tree.svg”.')).toBeDefined()
+  })
+
+  it('shows an error toast when the image export fails', async () => {
+    imageExportMock.exportTreeImage.mockRejectedValueOnce(
+      new Error('canvas blocked'),
+    )
+
+    mountApp()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'File format' }), {
+      target: { value: 'png' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }))
+
+    expect(
+      await screen.findByText(
+        "Couldn't export the tree image. Please try again.",
+      ),
+    ).toBeDefined()
+    expect(screen.getByRole('dialog')).toBeDefined()
   })
 
   it('renders the node details panel before a node is selected', () => {

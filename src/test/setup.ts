@@ -63,3 +63,16 @@ globalThis.DOMMatrixReadOnly =
 
 globalThis.ResizeObserver =
   ResizeObserverMock as unknown as typeof ResizeObserver
+
+const canvasContext = {
+  font: '',
+  fillStyle: '',
+  fillRect: () => {},
+  drawImage: () => {},
+  measureText: (text: string) => ({ width: text.length * 7 }),
+}
+
+Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+  configurable: true,
+  value: () => canvasContext,
+})

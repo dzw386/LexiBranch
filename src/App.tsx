@@ -541,7 +541,12 @@ function App() {
           <div className="flex shrink-0 items-center gap-1">
             <NewTreeAction onNewTree={() => newTree(t('newNode'))} />
             <LoadExampleMenu onLoadExample={importTree} />
-            <ImportExportActions tree={tree} onImport={importTree} />
+            <ImportExportActions
+              tree={tree}
+              nodes={measuredLayoutNodes}
+              edges={edges}
+              onImport={importTree}
+            />
           </div>
         </nav>
       </header>

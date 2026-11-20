@@ -2,6 +2,7 @@ import { useRef, useState, type ChangeEvent } from 'react'
 import { Download, Upload } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { PhyloTree } from '../../domain/types'
+import type { PhyloFlowEdge, PhyloFlowNode } from '../../layout/layout'
 import { serialize } from '../../parsers/newick'
 import {
   parse as parsePhyloXml,
@@ -13,6 +14,7 @@ import {
   serialize as serializeNHX,
 } from '../../parsers/nhx'
 import { useToastsStore } from '../../state/toasts'
+import { exportTreeImage, type ExportImageFormat } from '../canvas/exportImage'
 import { Button } from '../ui/button'
 import {
   Dialog,
@@ -26,6 +28,8 @@ import { ConfirmDialog } from './ConfirmDialog'
 
 interface ImportExportActionsProps {
   tree: PhyloTree
+  nodes: PhyloFlowNode[]
+  edges: PhyloFlowEdge[]
   onImport: (tree: PhyloTree) => void
 }
 
@@ -33,7 +37,7 @@ type ImportError =
   | { type: 'parse'; fileName: string; position: number }
   | { type: 'read'; fileName: string }
 
-type ExportFormat = 'newick' | 'nhx' | 'phyloxml'
+type ExportFormat = 'newick' | 'nhx' | 'phyloxml' | ExportImageFormat
 
 function isPhyloXmlFile(file: File): boolean {
   const extension = file.name.toLowerCase().split('.').at(-1)
@@ -41,8 +45,23 @@ function isPhyloXmlFile(file: File): boolean {
   return extension === 'xml' || extension === 'phyloxml'
 }
 
+function isImageFormat(format: ExportFormat): format is ExportImageFormat {
+  return format === 'png' || format === 'svg'
+}
+
+function triggerDownload(href: string, fileName: string): void {
+  const link = document.createElement('a')
+  link.href = href
+  link.download = fileName
+  document.body.append(link)
+  link.click()
+  link.remove()
+}
+
 export function ImportExportActions({
   tree,
+  nodes,
+  edges,
   onImport,
 }: ImportExportActionsProps) {
   const { t } = useTranslation()
@@ -56,6 +75,7 @@ export function ImportExportActions({
   } | null>(null)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<ExportFormat>('newick')
+  const [isExporting, setIsExporting] = useState(false)
   const hasMetadata = Object.values(tree.nodes).some(
     (node) => Object.keys(node.metadata).length > 0,
   )
@@ -109,7 +129,35 @@ export function ImportExportActions({
     setPendingImport(null)
   }
 
-  function handleDownload(): void {
+  async function handleDownload(): Promise<void> {
+    const fileName = t(`${exportFormat}ExportFileName`)
+
+    if (isImageFormat(exportFormat)) {
+      setIsExporting(true)
+      try {
+        const dataUrl = await exportTreeImage({
+          nodes,
+          edges,
+          format: exportFormat,
+        })
+        triggerDownload(dataUrl, fileName)
+        setExportDialogOpen(false)
+        showToast({
+          variant: 'success',
+          messageKey: 'toastExportSuccess',
+          params: { fileName },
+        })
+      } catch {
+        showToast({
+          variant: 'error',
+          messageKey: 'toastImageExportError',
+        })
+      } finally {
+        setIsExporting(false)
+      }
+      return
+    }
+
     const content = {
       newick: () => serialize(tree),
       nhx: () => serializeNHX(tree),
@@ -122,18 +170,13 @@ export function ImportExportActions({
           : 'text/plain;charset=utf-8',
     })
     const objectUrl = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = objectUrl
-    link.download = t(`${exportFormat}ExportFileName`)
-    document.body.append(link)
-    link.click()
-    link.remove()
+    triggerDownload(objectUrl, fileName)
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
     setExportDialogOpen(false)
     showToast({
       variant: 'success',
       messageKey: 'toastExportSuccess',
-      params: { fileName: link.download },
+      params: { fileName },
     })
   }
 
@@ -199,9 +242,18 @@ export function ImportExportActions({
               <option value="newick">{t('newickFormat')}</option>
               <option value="nhx">{t('nhxFormat')}</option>
               <option value="phyloxml">{t('phyloXmlFormat')}</option>
+              <option value="png">{t('pngFormat')}</option>
+              <option value="svg">{t('svgFormat')}</option>
             </select>
           </div>
-          {exportFormat === 'newick' && hasMetadata ? (
+          {isImageFormat(exportFormat) ? (
+            <p
+              role="status"
+              className="rounded-md border border-border bg-muted p-3 text-sm text-muted-foreground"
+            >
+              {t('imageExportHint')}
+            </p>
+          ) : exportFormat === 'newick' && hasMetadata ? (
             <p
               role="status"
               className="rounded-md border border-border bg-muted p-3 text-sm text-muted-foreground"
@@ -217,7 +269,13 @@ export function ImportExportActions({
             >
               {t('cancel')}
             </Button>
-            <Button type="button" onClick={handleDownload}>
+            <Button
+              type="button"
+              disabled={isExporting}
+              onClick={() => {
+                void handleDownload()
+              }}
+            >
               <Download aria-hidden="true" />
               {t('download')}
             </Button>
