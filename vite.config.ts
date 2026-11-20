@@ -4,7 +4,8 @@ import { defineConfig } from 'vite'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
+export default defineConfig(({ command, isPreview }) => ({
+  base: command === 'build' || isPreview ? '/LexiBranch/' : '/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
@@ -15,4 +16,4 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
   },
-})
+}))
