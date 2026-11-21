@@ -1,5 +1,13 @@
 import { useState } from 'react'
-import { Move, MoveDown, MoveUp, Plus, Trash2 } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronRight,
+  Move,
+  MoveDown,
+  MoveUp,
+  Plus,
+  Trash2,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { ReorderDirection } from '../../domain/tree'
 import { ConfirmDialog } from '../dialogs/ConfirmDialog'
@@ -11,8 +19,11 @@ export interface NodeStructureActionsProps {
   isRoot: boolean
   canMoveUp: boolean
   canMoveDown: boolean
+  hasChildren?: boolean
+  isCollapsed?: boolean
   disabled?: boolean
   onAddChild: () => void
+  onToggleCollapse?: () => void
   onStartMove: () => void
   onReorder: (direction: ReorderDirection) => void
   onRemoveSubtree: () => void
@@ -24,8 +35,11 @@ export function NodeStructureActions({
   isRoot,
   canMoveUp,
   canMoveDown,
+  hasChildren = false,
+  isCollapsed = false,
   disabled = false,
   onAddChild,
+  onToggleCollapse,
   onStartMove,
   onReorder,
   onRemoveSubtree,
@@ -58,6 +72,25 @@ export function NodeStructureActions({
         <Plus aria-hidden="true" />
         {t('addChild')}
       </Button>
+      {onToggleCollapse === undefined ? null : (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={onToggleCollapse}
+          disabled={(!hasChildren && !isCollapsed) || disabled}
+          aria-label={isCollapsed ? t('expandSubtree') : t('collapseSubtree')}
+          aria-expanded={hasChildren || isCollapsed ? !isCollapsed : undefined}
+        >
+          {isCollapsed ? (
+            <ChevronRight aria-hidden="true" />
+          ) : (
+            <ChevronDown aria-hidden="true" />
+          )}
+          {isCollapsed ? t('expandSubtree') : t('collapseSubtree')}
+        </Button>
+      )}
       <Button
         type="button"
         variant="outline"

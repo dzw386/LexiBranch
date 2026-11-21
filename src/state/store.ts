@@ -4,6 +4,7 @@ import {
   addMetadata as addMetadataToTree,
   createEmptyTree,
   createNode,
+  getSubtreeIds,
   moveSubtree as moveSubtreeInTree,
   removeMetadata as removeMetadataFromTree,
   removeSubtree as removeSubtreeFromTree,
@@ -32,9 +33,11 @@ export interface TreeStore {
   history: TreeHistory
   selectedNodeId: string | null
   pendingMoveNodeId: string | null
+  collapsedNodeIds: string[]
   viewMode: LayoutMode
   selectNode: (nodeId: string | null) => void
   setViewMode: (viewMode: LayoutMode) => void
+  toggleSubtreeCollapsed: (nodeId: string) => void
   undo: () => void
   redo: () => void
   newTree: (rootLabel: string) => void
@@ -68,6 +71,46 @@ function updateTreeHistory(
   return {
     tree,
     history: recordTreeChange(state.history, state.tree, tree),
+  }
+}
+
+function findCollapsedAncestor(
+  tree: PhyloTree,
+  collapsedNodeIds: readonly string[],
+  nodeId: string,
+): string | null {
+  const collapsedIds = new Set(collapsedNodeIds)
+  let currentId: string | null = nodeId
+  let collapsedAncestorId: string | null = null
+
+  while (currentId !== null) {
+    if (collapsedIds.has(currentId)) {
+      collapsedAncestorId = currentId
+    }
+
+    currentId = tree.nodes[currentId]?.parentId ?? null
+  }
+
+  return collapsedAncestorId
+}
+
+function normalizeCollapsedState(
+  tree: PhyloTree,
+  selectedNodeId: string | null,
+  collapsedNodeIds: readonly string[],
+): Pick<TreeStore, 'selectedNodeId' | 'collapsedNodeIds'> {
+  const validCollapsedNodeIds = collapsedNodeIds.filter(
+    (nodeId) => (tree.nodes[nodeId]?.childIds.length ?? 0) > 0,
+  )
+  const nextSelectedNodeId =
+    selectedNodeId !== null && Object.hasOwn(tree.nodes, selectedNodeId)
+      ? (findCollapsedAncestor(tree, validCollapsedNodeIds, selectedNodeId) ??
+        selectedNodeId)
+      : null
+
+  return {
+    selectedNodeId: nextSelectedNodeId,
+    collapsedNodeIds: validCollapsedNodeIds,
   }
 }
 
@@ -122,11 +165,49 @@ export const useTreeStore = create<TreeStore>((set) => ({
   history: createTreeHistory(),
   selectedNodeId: null,
   pendingMoveNodeId: null,
+  collapsedNodeIds: [],
   viewMode: 'cladogram',
 
   selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
 
   setViewMode: (viewMode) => set({ viewMode }),
+
+  toggleSubtreeCollapsed: (nodeId) =>
+    set((state) => {
+      if (state.pendingMoveNodeId !== null) {
+        return state
+      }
+
+      const node = state.tree.nodes[nodeId]
+
+      if (node === undefined) {
+        return state
+      }
+
+      if (state.collapsedNodeIds.includes(nodeId)) {
+        return {
+          collapsedNodeIds: state.collapsedNodeIds.filter(
+            (collapsedId) => collapsedId !== nodeId,
+          ),
+        }
+      }
+
+      if (node.childIds.length === 0) {
+        return state
+      }
+
+      const hiddenIds = new Set(getSubtreeIds(state.tree, nodeId))
+
+      return {
+        collapsedNodeIds: [...state.collapsedNodeIds, nodeId],
+        selectedNodeId:
+          state.selectedNodeId !== null &&
+          state.selectedNodeId !== nodeId &&
+          hiddenIds.has(state.selectedNodeId)
+            ? nodeId
+            : state.selectedNodeId,
+      }
+    }),
 
   undo: () =>
     set((state) => {
@@ -138,11 +219,11 @@ export const useTreeStore = create<TreeStore>((set) => ({
 
       return {
         ...transition,
-        selectedNodeId:
-          state.selectedNodeId !== null &&
-          Object.hasOwn(transition.tree.nodes, state.selectedNodeId)
-            ? state.selectedNodeId
-            : null,
+        ...normalizeCollapsedState(
+          transition.tree,
+          state.selectedNodeId,
+          state.collapsedNodeIds,
+        ),
         pendingMoveNodeId: null,
       }
     }),
@@ -157,11 +238,11 @@ export const useTreeStore = create<TreeStore>((set) => ({
 
       return {
         ...transition,
-        selectedNodeId:
-          state.selectedNodeId !== null &&
-          Object.hasOwn(transition.tree.nodes, state.selectedNodeId)
-            ? state.selectedNodeId
-            : null,
+        ...normalizeCollapsedState(
+          transition.tree,
+          state.selectedNodeId,
+          state.collapsedNodeIds,
+        ),
         pendingMoveNodeId: null,
       }
     }),
@@ -173,6 +254,7 @@ export const useTreeStore = create<TreeStore>((set) => ({
       ...updateTreeHistory(state, setLabelInTree(tree, tree.rootId, rootLabel)),
       selectedNodeId: null,
       pendingMoveNodeId: null,
+      collapsedNodeIds: [],
     }))
   },
 
@@ -181,6 +263,7 @@ export const useTreeStore = create<TreeStore>((set) => ({
       ...updateTreeHistory(state, tree),
       selectedNodeId: null,
       pendingMoveNodeId: null,
+      collapsedNodeIds: [],
     })),
 
   addChild: (parentId, options = {}) =>
@@ -191,12 +274,16 @@ export const useTreeStore = create<TreeStore>((set) => ({
       return {
         ...updateTreeHistory(state, tree),
         selectedNodeId: childIds?.at(-1),
+        collapsedNodeIds: state.collapsedNodeIds.filter(
+          (nodeId) => nodeId !== parentId,
+        ),
       }
     }),
 
   removeSubtree: (nodeId) =>
     set((state) => {
       const parentId = state.tree.nodes[nodeId]?.parentId ?? null
+      const removedIds = new Set(getSubtreeIds(state.tree, nodeId))
       const tree = removeSubtreeFromTree(state.tree, nodeId)
       const pendingMoveNodeId =
         state.pendingMoveNodeId === nodeId ? null : state.pendingMoveNodeId
@@ -205,6 +292,9 @@ export const useTreeStore = create<TreeStore>((set) => ({
         ...updateTreeHistory(state, tree),
         selectedNodeId: parentId,
         pendingMoveNodeId,
+        collapsedNodeIds: state.collapsedNodeIds.filter(
+          (collapsedId) => !removedIds.has(collapsedId),
+        ),
       }
     }),
 
@@ -276,6 +366,9 @@ export const useTreeStore = create<TreeStore>((set) => ({
         ),
         selectedNodeId: state.pendingMoveNodeId,
         pendingMoveNodeId: null,
+        collapsedNodeIds: state.collapsedNodeIds.filter(
+          (nodeId) => nodeId !== newParentId,
+        ),
       }
     }),
 }))

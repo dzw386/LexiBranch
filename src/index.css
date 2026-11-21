@@ -114,6 +114,11 @@
   outline-offset: 2px;
 }
 
+.phylo-node__collapse-toggle {
+  min-height: 1.5rem;
+  min-width: 1.5rem;
+}
+
 @media (pointer: coarse) {
   button,
   input,

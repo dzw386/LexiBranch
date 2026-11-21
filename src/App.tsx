@@ -123,11 +123,15 @@ function App() {
   const tree = useTreeStore((state) => state.tree)
   const selectedNodeId = useTreeStore((state) => state.selectedNodeId)
   const pendingMoveNodeId = useTreeStore((state) => state.pendingMoveNodeId)
+  const collapsedNodeIds = useTreeStore((state) => state.collapsedNodeIds)
   const viewMode = useTreeStore((state) => state.viewMode)
   const selectNode = useTreeStore((state) => state.selectNode)
   const newTree = useTreeStore((state) => state.newTree)
   const importTree = useTreeStore((state) => state.importTree)
   const setViewMode = useTreeStore((state) => state.setViewMode)
+  const toggleSubtreeCollapsed = useTreeStore(
+    (state) => state.toggleSubtreeCollapsed,
+  )
   const addChild = useTreeStore((state) => state.addChild)
   const removeSubtree = useTreeStore((state) => state.removeSubtree)
   const setLabel = useTreeStore((state) => state.setLabel)
@@ -209,10 +213,15 @@ function App() {
     return () => window.removeEventListener('pagehide', handlePageHide)
   }, [])
 
+  const collapsedIds = useMemo(
+    () => new Set(collapsedNodeIds),
+    [collapsedNodeIds],
+  )
   const { nodes: layoutNodes, edges } = useMemo(
     () =>
       layoutPhyloTree(tree, {
         mode: viewMode,
+        collapsedIds,
         nodeWidths: Object.fromEntries(
           Object.entries(nodeMeasurements).map(([id, { width }]) => [
             id,
@@ -220,7 +229,7 @@ function App() {
           ]),
         ),
       }),
-    [tree, nodeMeasurements, viewMode],
+    [tree, nodeMeasurements, viewMode, collapsedIds],
   )
   const layoutKey = useMemo(
     () =>
@@ -426,6 +435,15 @@ function App() {
     selectedTreeNode === undefined
       ? 1
       : getSubtreeIds(tree, selectedTreeNode.id).length
+  const selectedNodeHasChildren = (selectedTreeNode?.childIds.length ?? 0) > 0
+  const isSelectedNodeCollapsed =
+    selectedNodeId !== null && collapsedIds.has(selectedNodeId)
+
+  function handleToggleCollapse(nodeId: string): void {
+    if (pendingMoveNodeId === null) {
+      toggleSubtreeCollapsed(nodeId)
+    }
+  }
 
   return (
     <div className="app-shell flex w-full flex-col overflow-hidden bg-background text-foreground">
@@ -605,6 +623,8 @@ function App() {
             canMoveDown={
               siblingIndex >= 0 && siblingIndex < siblingIds.length - 1
             }
+            hasChildren={selectedNodeHasChildren}
+            isCollapsed={isSelectedNodeCollapsed}
             isMoveMode={pendingMoveNodeId !== null}
             onLabelChange={(label) => {
               if (selectedNodeId !== null) {
@@ -634,6 +654,11 @@ function App() {
             onAddChild={() => {
               if (selectedNodeId !== null) {
                 addChild(selectedNodeId, { label: t('newNode') })
+              }
+            }}
+            onToggleCollapse={() => {
+              if (selectedNodeId !== null) {
+                handleToggleCollapse(selectedNodeId)
               }
             }}
             onStartMove={() => {

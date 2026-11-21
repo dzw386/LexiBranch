@@ -24,11 +24,14 @@ const FALLBACK_NODE_HEIGHT = 38
 const NODE_PADDING = 12
 const NODE_GAP = 8
 const BADGE_SIZE = 20
+const COLLAPSED_BADGE_HEIGHT = 20
+const COLLAPSED_BADGE_MIN_WIDTH = 24
 const BRANCH_LABEL_OFFSET = 18
 const BRANCH_LABEL_HEIGHT = 19
 const FONT_FAMILY = 'ui-sans-serif, system-ui, sans-serif'
 const NODE_FONT = `500 14px ${FONT_FAMILY}`
 const BRANCH_LABEL_FONT = `400 11px ${FONT_FAMILY}`
+const COLLAPSED_BADGE_FONT = `600 10px ${FONT_FAMILY}`
 interface ExportPalette {
   background: string
   nodeBackground: string
@@ -75,6 +78,8 @@ interface ExportNode {
   height: number
   label: string
   metadataCount: number
+  collapsed: boolean
+  hiddenDescendantCount: number
 }
 
 let textMeasureContext: CanvasRenderingContext2D | null | undefined
@@ -156,6 +161,8 @@ function prepareNodes(nodes: Node[]): ExportNode[] {
     metadataCount: Object.keys(
       (node.data?.metadata as Record<string, unknown> | undefined) ?? {},
     ).length,
+    collapsed: node.data?.collapsed === true,
+    hiddenDescendantCount: Number(node.data?.hiddenDescendantCount ?? 0),
   }))
 }
 
@@ -245,13 +252,22 @@ function nodeCenterY(node: ExportNode): number {
 }
 
 function buildNodeMarkup(node: ExportNode, palette: ExportPalette): string {
-  const hasBadge = node.metadataCount > 0
-  const labelWidth =
-    node.width - NODE_PADDING * 2 - (hasBadge ? BADGE_SIZE + NODE_GAP : 0)
+  const hasMetadataBadge = node.metadataCount > 0
+  const hasCollapsedBadge = node.collapsed && node.hiddenDescendantCount > 0
+  const collapsedLabel = `+${node.hiddenDescendantCount}`
+  const collapsedBadgeWidth = Math.max(
+    COLLAPSED_BADGE_MIN_WIDTH,
+    Math.ceil(measureText(collapsedLabel, COLLAPSED_BADGE_FONT)) + 10,
+  )
+  const badgeWidth =
+    (hasMetadataBadge ? BADGE_SIZE + NODE_GAP : 0) +
+    (hasCollapsedBadge ? collapsedBadgeWidth + NODE_GAP : 0)
+  const labelWidth = node.width - NODE_PADDING * 2 - badgeWidth
   const label = truncateText(node.label, labelWidth, NODE_FONT)
   const centerY = nodeCenterY(node)
+  const dashArray = node.collapsed ? ' stroke-dasharray="4 3"' : ''
   const parts = [
-    `<rect x="${formatNumber(node.x)}" y="${formatNumber(node.y)}" width="${node.width}" height="${node.height}" rx="8" fill="${palette.nodeBackground}" stroke="${palette.border}" stroke-opacity="0.8" filter="url(#node-shadow)"/>`,
+    `<rect x="${formatNumber(node.x)}" y="${formatNumber(node.y)}" width="${node.width}" height="${node.height}" rx="8" fill="${palette.nodeBackground}" stroke="${palette.border}" stroke-opacity="0.8"${dashArray} filter="url(#node-shadow)"/>`,
   ]
 
   if (label !== '') {
@@ -260,8 +276,20 @@ function buildNodeMarkup(node: ExportNode, palette: ExportPalette): string {
     )
   }
 
-  if (hasBadge) {
-    const centerX = node.x + node.width - NODE_PADDING - BADGE_SIZE / 2
+  let badgeRight = node.x + node.width - NODE_PADDING
+
+  if (hasCollapsedBadge) {
+    const badgeX = badgeRight - collapsedBadgeWidth
+    const badgeY = centerY - COLLAPSED_BADGE_HEIGHT / 2
+    parts.push(
+      `<rect x="${formatNumber(badgeX)}" y="${formatNumber(badgeY)}" width="${formatNumber(collapsedBadgeWidth)}" height="${COLLAPSED_BADGE_HEIGHT}" rx="${COLLAPSED_BADGE_HEIGHT / 2}" fill="${palette.badge}" stroke="${palette.border}"/>`,
+      `<text x="${formatNumber(badgeX + collapsedBadgeWidth / 2)}" y="${formatNumber(centerY)}" font-size="10" font-weight="600" fill="${palette.text}" text-anchor="middle" dominant-baseline="central">${escapeXml(collapsedLabel)}</text>`,
+    )
+    badgeRight = badgeX - NODE_GAP
+  }
+
+  if (hasMetadataBadge) {
+    const centerX = badgeRight - BADGE_SIZE / 2
     parts.push(
       `<circle cx="${formatNumber(centerX)}" cy="${formatNumber(centerY)}" r="${BADGE_SIZE / 2}" fill="${palette.badge}"/>`,
       `<text x="${formatNumber(centerX)}" y="${formatNumber(centerY)}" font-size="10" font-weight="600" fill="${palette.muted}" text-anchor="middle" dominant-baseline="central">${node.metadataCount}</text>`,

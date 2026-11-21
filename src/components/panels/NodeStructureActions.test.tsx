@@ -9,12 +9,14 @@ type ActionsProps = ComponentProps<typeof NodeStructureActions>
 
 function renderActions(overrides: Partial<ActionsProps> = {}): {
   onAddChild: ReturnType<typeof vi.fn>
+  onToggleCollapse: ReturnType<typeof vi.fn>
   onStartMove: ReturnType<typeof vi.fn>
   onReorder: ReturnType<typeof vi.fn>
   onRemoveSubtree: ReturnType<typeof vi.fn>
 } {
   const callbacks = {
     onAddChild: vi.fn(),
+    onToggleCollapse: vi.fn(),
     onStartMove: vi.fn(),
     onReorder: vi.fn(),
     onRemoveSubtree: vi.fn(),
@@ -28,6 +30,8 @@ function renderActions(overrides: Partial<ActionsProps> = {}): {
         isRoot={false}
         canMoveUp
         canMoveDown
+        hasChildren
+        isCollapsed={false}
         {...callbacks}
         {...overrides}
       />
@@ -55,6 +59,29 @@ describe('NodeStructureActions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Move down' }))
     expect(callbacks.onReorder).toHaveBeenLastCalledWith('down')
     expect(callbacks.onReorder).toHaveBeenCalledTimes(2)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse subtree' }))
+    expect(callbacks.onToggleCollapse).toHaveBeenCalledTimes(1)
+  })
+
+  it('offers expansion for a collapsed node with children', () => {
+    const callbacks = renderActions({ isCollapsed: true })
+
+    const expandButton = screen.getByRole('button', { name: 'Expand subtree' })
+    expect(expandButton.getAttribute('aria-expanded')).toBe('false')
+
+    fireEvent.click(expandButton)
+    expect(callbacks.onToggleCollapse).toHaveBeenCalledTimes(1)
+  })
+
+  it('disables the collapse action for a leaf node', () => {
+    renderActions({ hasChildren: false })
+
+    expect(
+      screen
+        .getByRole('button', { name: 'Collapse subtree' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
   })
 
   it('disables reorder buttons at the sibling boundaries', () => {
@@ -151,7 +178,13 @@ describe('NodeStructureActions', () => {
         .getByRole('button', { name: 'Delete subtree' })
         .hasAttribute('disabled'),
     ).toBe(true)
+    expect(
+      screen
+        .getByRole('button', { name: 'Collapse subtree' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
     expect(callbacks.onAddChild).not.toHaveBeenCalled()
+    expect(callbacks.onToggleCollapse).not.toHaveBeenCalled()
     expect(callbacks.onStartMove).not.toHaveBeenCalled()
     expect(callbacks.onReorder).not.toHaveBeenCalled()
     expect(callbacks.onRemoveSubtree).not.toHaveBeenCalled()

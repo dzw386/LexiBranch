@@ -16,11 +16,15 @@ export interface LayoutOptions {
   horizontalGap?: number
   verticalSpacing?: number
   nodeWidths?: Record<string, number>
+  collapsedIds?: ReadonlySet<string>
 }
 
 export type PhyloNodeData = {
   label: string
   metadata: Record<string, MetadataValue>
+  collapsed?: boolean
+  hiddenDescendantCount?: number
+  hasChildren?: boolean
 }
 
 export type PhyloEdgeData = {
@@ -44,6 +48,24 @@ const PHYLOGRAM_FALLBACK_SCALE = 240
 const MISSING_BRANCH_LENGTH = 1
 const MIN_PHYLOGRAM_BRANCH = 24
 
+function countDescendants(children: readonly NestedTreeNode[]): number {
+  let count = 0
+  const pending = [...children]
+
+  while (pending.length > 0) {
+    const current = pending.pop()
+
+    if (current === undefined) {
+      continue
+    }
+
+    count += 1
+    pending.push(...(current.children ?? []))
+  }
+
+  return count
+}
+
 export function layoutTree(
   tree: NestedTreeNode,
   options: LayoutOptions = {},
@@ -52,6 +74,7 @@ export function layoutTree(
   const horizontalGap = options.horizontalGap ?? DEFAULT_HORIZONTAL_GAP
   const verticalSpacing = options.verticalSpacing ?? DEFAULT_VERTICAL_SPACING
   const nodeWidths = options.nodeWidths ?? {}
+  const collapsedIds = options.collapsedIds ?? new Set<string>()
   const maxWidthByDepth: number[] = []
   const yById = new Map<string, number>()
   let maxCumulative = 0
@@ -68,7 +91,7 @@ export function layoutTree(
     )
     maxCumulative = Math.max(maxCumulative, cumulative)
 
-    const children = node.children ?? []
+    const children = collapsedIds.has(node.id) ? [] : (node.children ?? [])
     const childYs = children.map((child) =>
       measure(
         child,
@@ -123,7 +146,9 @@ export function layoutTree(
   const edges: PhyloFlowEdge[] = []
 
   function visit(node: NestedTreeNode, depth: number, x: number): void {
-    const children = node.children ?? []
+    const allChildren = node.children ?? []
+    const isCollapsed = allChildren.length > 0 && collapsedIds.has(node.id)
+    const children = isCollapsed ? [] : allChildren
     const parentRight = x + (nodeWidths[node.id] ?? DEFAULT_NODE_WIDTH)
 
     nodes.push({
@@ -133,6 +158,9 @@ export function layoutTree(
       data: {
         label: node.label,
         metadata: { ...node.metadata },
+        collapsed: isCollapsed,
+        hiddenDescendantCount: isCollapsed ? countDescendants(allChildren) : 0,
+        hasChildren: allChildren.length > 0,
       },
       sourcePosition: 'left' as PhyloFlowNode['sourcePosition'],
       targetPosition: 'left' as PhyloFlowNode['targetPosition'],

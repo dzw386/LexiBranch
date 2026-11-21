@@ -127,6 +127,7 @@ describe('App', () => {
       history: createTreeHistory(),
       selectedNodeId: null,
       pendingMoveNodeId: null,
+      collapsedNodeIds: [],
       viewMode: 'cladogram',
     })
     await i18n.changeLanguage('en')
@@ -801,7 +802,11 @@ describe('App', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'File format' }), {
       target: { value: 'png' },
     })
-    expect(screen.getByText('The image shows the whole tree.')).toBeDefined()
+    expect(
+      screen.getByText(
+        'The image matches the tree currently shown on the canvas.',
+      ),
+    ).toBeDefined()
 
     fireEvent.click(screen.getByRole('button', { name: 'Download' }))
 
@@ -1020,6 +1025,46 @@ describe('App', () => {
     expect(selectedNodeId).not.toBeNull()
     expect(tree.nodes[selectedNodeId ?? '']?.parentId).toBe('germanic')
     await waitFor(() => expect(countRenderedNodes()).toBe(8))
+  })
+
+  it('collapses and expands a subtree from the canvas and the sidebar', async () => {
+    mountApp()
+
+    await screen.findByText('Germanic')
+    expect(countRenderedNodes()).toBe(7)
+
+    fireEvent.click(screen.getByLabelText('Collapse subtree of “Germanic”'))
+
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual(['germanic'])
+    expect(useTreeStore.getState().selectedNodeId).toBeNull()
+    await waitFor(() => expect(countRenderedNodes()).toBe(5))
+    expect(screen.queryByText('English')).toBeNull()
+    expect(screen.queryByText('German')).toBeNull()
+
+    fireEvent.click(screen.getByText('Germanic'))
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Expand subtree' }),
+    )
+
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual([])
+    expect(useTreeStore.getState().selectedNodeId).toBe('germanic')
+    await waitFor(() => expect(countRenderedNodes()).toBe(7))
+    expect(await screen.findByText('English')).toBeDefined()
+  })
+
+  it('selects the collapsed ancestor when a hidden node was selected', async () => {
+    mountApp()
+
+    await screen.findByText('English')
+    fireEvent.click(screen.getByText('English'))
+    expect(useTreeStore.getState().selectedNodeId).toBe('english')
+
+    act(() => useTreeStore.getState().toggleSubtreeCollapsed('germanic'))
+
+    expect(useTreeStore.getState().selectedNodeId).toBe('germanic')
+    expect(
+      ((await screen.findByLabelText('Label')) as HTMLInputElement).value,
+    ).toBe('Germanic')
   })
 
   it('deletes a subtree only after confirmation', async () => {

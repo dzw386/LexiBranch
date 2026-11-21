@@ -17,6 +17,8 @@ export interface NodeDetailsPanelProps {
   subtreeSize?: number
   canMoveUp?: boolean
   canMoveDown?: boolean
+  hasChildren?: boolean
+  isCollapsed?: boolean
   isMoveMode?: boolean
   onLabelChange?: (label: string) => void
   onBranchLengthChange?: (branchLength: number | null) => void
@@ -28,6 +30,7 @@ export interface NodeDetailsPanelProps {
   ) => void
   onRemoveMetadata?: (key: string) => void
   onAddChild?: () => void
+  onToggleCollapse?: () => void
   onStartMove?: () => void
   onReorder?: (direction: ReorderDirection) => void
   onRemoveSubtree?: () => void
@@ -221,6 +224,8 @@ export function NodeDetailsPanel({
   subtreeSize = 1,
   canMoveUp = false,
   canMoveDown = false,
+  hasChildren = false,
+  isCollapsed = false,
   isMoveMode = false,
   onLabelChange,
   onBranchLengthChange,
@@ -228,6 +233,7 @@ export function NodeDetailsPanel({
   onUpdateMetadata,
   onRemoveMetadata,
   onAddChild,
+  onToggleCollapse,
   onStartMove,
   onReorder,
   onRemoveSubtree,
@@ -273,8 +279,11 @@ export function NodeDetailsPanel({
               isRoot={isRoot}
               canMoveUp={canMoveUp}
               canMoveDown={canMoveDown}
+              hasChildren={hasChildren}
+              isCollapsed={isCollapsed}
               disabled={isMoveMode}
               onAddChild={onAddChild}
+              onToggleCollapse={onToggleCollapse}
               onStartMove={onStartMove}
               onReorder={onReorder}
               onRemoveSubtree={onRemoveSubtree}

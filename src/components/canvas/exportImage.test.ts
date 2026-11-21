@@ -162,6 +162,32 @@ describe('buildExportTreeSvg', () => {
     expect(svg).not.toContain('that cannot fit')
   })
 
+  it('marks collapsed nodes with a dashed box and hidden-node badge', () => {
+    const svg = buildExportTreeSvg(
+      [
+        {
+          id: 'branch',
+          type: 'phylo',
+          position: { x: 0, y: 0 },
+          measured: { width: 140, height: 40 },
+          data: {
+            label: 'Branch',
+            metadata: {},
+            collapsed: true,
+            hiddenDescendantCount: 3,
+            hasChildren: true,
+          },
+        },
+      ],
+      [],
+      640,
+      480,
+    )
+
+    expect(svg).toContain('stroke-dasharray="4 3"')
+    expect(svg).toContain('>+3</text>')
+  })
+
   it('escapes labels and omits missing branch labels', () => {
     const svg = buildExportTreeSvg(
       [

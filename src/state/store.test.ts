@@ -16,6 +16,7 @@ function resetStore(): void {
     history: createTreeHistory(),
     selectedNodeId: null,
     pendingMoveNodeId: null,
+    collapsedNodeIds: [],
     viewMode: 'cladogram',
   })
 }
@@ -159,6 +160,187 @@ describe('useTreeStore', () => {
 
     useTreeStore.getState().setViewMode('cladogram')
     expect(useTreeStore.getState().viewMode).toBe('cladogram')
+  })
+
+  it('toggles subtree collapse as view state without touching the tree or history', () => {
+    const store = useTreeStore.getState()
+    const rootId = store.tree.rootId
+
+    store.addChild(rootId, { id: 'branch' })
+    store.addChild('branch', { id: 'leaf' })
+    store.selectNode('leaf')
+
+    const before = useTreeStore.getState()
+
+    store.toggleSubtreeCollapsed('branch')
+
+    let state = useTreeStore.getState()
+    expect(state.collapsedNodeIds).toEqual(['branch'])
+    expect(state.tree).toBe(before.tree)
+    expect(state.history).toBe(before.history)
+    expect(state.selectedNodeId).toBe('branch')
+
+    store.toggleSubtreeCollapsed('branch')
+
+    state = useTreeStore.getState()
+    expect(state.collapsedNodeIds).toEqual([])
+    expect(state.selectedNodeId).toBe('branch')
+  })
+
+  it('ignores collapse attempts on leaves, unknown nodes, and during a move', () => {
+    const store = useTreeStore.getState()
+    const rootId = store.tree.rootId
+
+    store.addChild(rootId, { id: 'leaf' })
+    store.addChild(rootId, { id: 'branch' })
+
+    store.toggleSubtreeCollapsed('leaf')
+    store.toggleSubtreeCollapsed('missing')
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual([])
+
+    store.startMoveSubtree('leaf')
+    store.toggleSubtreeCollapsed('branch')
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual([])
+  })
+
+  it('expands a collapsed parent when a child is added or moved under it', () => {
+    const store = useTreeStore.getState()
+    const rootId = store.tree.rootId
+
+    store.addChild(rootId, { id: 'branch' })
+    store.addChild(rootId, { id: 'target' })
+    store.addChild('target', { id: 'target-leaf' })
+    store.addChild('branch', { id: 'leaf' })
+    store.toggleSubtreeCollapsed('branch')
+    store.toggleSubtreeCollapsed('target')
+
+    store.addChild('branch', { id: 'new-leaf' })
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual(['target'])
+
+    store.startMoveSubtree('new-leaf')
+    store.completeMoveSubtree('target')
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual([])
+  })
+
+  it('prunes collapsed nodes when their subtree is removed', () => {
+    const store = useTreeStore.getState()
+    const rootId = store.tree.rootId
+
+    store.addChild(rootId, { id: 'branch' })
+    store.addChild('branch', { id: 'leaf' })
+    store.addChild('leaf', { id: 'subleaf' })
+    store.toggleSubtreeCollapsed('leaf')
+    store.toggleSubtreeCollapsed('branch')
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual(['leaf', 'branch'])
+
+    store.removeSubtree('branch')
+
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual([])
+  })
+
+  it('clears collapsed nodes when starting a new tree or importing', () => {
+    const store = useTreeStore.getState()
+    const rootId = store.tree.rootId
+
+    store.addChild(rootId, { id: 'branch' })
+    store.addChild('branch', { id: 'leaf' })
+    store.toggleSubtreeCollapsed('branch')
+    store.newTree('New tree')
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual([])
+
+    const newRootId = useTreeStore.getState().tree.rootId
+    store.addChild(newRootId, { id: 'new-branch' })
+    store.addChild('new-branch', { id: 'new-leaf' })
+    store.toggleSubtreeCollapsed('new-branch')
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual(['new-branch'])
+
+    const importedRoot = createNode({ id: 'imported-root' })
+    store.importTree({
+      rootId: importedRoot.id,
+      nodes: { [importedRoot.id]: importedRoot },
+    })
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual([])
+  })
+
+  it('drops collapsed ids that disappear while undoing or redoing', () => {
+    const store = useTreeStore.getState()
+    const rootId = store.tree.rootId
+
+    store.addChild(rootId, { id: 'branch' })
+    store.addChild('branch', { id: 'leaf' })
+    store.toggleSubtreeCollapsed('branch')
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual(['branch'])
+
+    store.undo()
+    store.undo()
+
+    expect(useTreeStore.getState().tree.nodes.branch).toBeUndefined()
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual([])
+
+    store.redo()
+    store.redo()
+
+    expect(useTreeStore.getState().tree.nodes.branch).toBeDefined()
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual([])
+  })
+
+  it('un-collapses a node that loses its last child through undo', () => {
+    const store = useTreeStore.getState()
+    const rootId = store.tree.rootId
+
+    store.addChild(rootId, { id: 'branch' })
+    store.addChild('branch', { id: 'leaf' })
+    store.toggleSubtreeCollapsed('branch')
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual(['branch'])
+
+    store.undo()
+
+    const state = useTreeStore.getState()
+    expect(state.tree.nodes.branch).toBeDefined()
+    expect(state.tree.nodes.branch?.childIds).toEqual([])
+    expect(state.collapsedNodeIds).toEqual([])
+  })
+
+  it('selects a collapsed ancestor when undo hides the selected node', () => {
+    const store = useTreeStore.getState()
+    const rootId = store.tree.rootId
+
+    store.addChild(rootId, { id: 'branch' })
+    store.addChild('branch', { id: 'c1' })
+    store.addChild('branch', { id: 'c2' })
+    store.startMoveSubtree('c1')
+    store.completeMoveSubtree(rootId)
+    store.toggleSubtreeCollapsed('branch')
+    store.selectNode('c1')
+
+    store.undo()
+
+    const state = useTreeStore.getState()
+    expect(state.tree.nodes.c1?.parentId).toBe('branch')
+    expect(state.collapsedNodeIds).toEqual(['branch'])
+    expect(state.selectedNodeId).toBe('branch')
+  })
+
+  it('selects the outermost collapsed ancestor when undo hides the selected node', () => {
+    const store = useTreeStore.getState()
+    const rootId = store.tree.rootId
+
+    store.addChild(rootId, { id: 'branch' })
+    store.addChild('branch', { id: 'subbranch' })
+    store.addChild('subbranch', { id: 'leaf' })
+    store.addChild('subbranch', { id: 'other-leaf' })
+    store.startMoveSubtree('leaf')
+    store.completeMoveSubtree(rootId)
+    store.toggleSubtreeCollapsed('subbranch')
+    store.toggleSubtreeCollapsed('branch')
+    store.selectNode('leaf')
+
+    store.undo()
+
+    const state = useTreeStore.getState()
+    expect(state.tree.nodes.leaf?.parentId).toBe('subbranch')
+    expect(state.collapsedNodeIds).toEqual(['subbranch', 'branch'])
+    expect(state.selectedNodeId).toBe('branch')
   })
 
   it('starts a blank tree and clears transient node state', () => {

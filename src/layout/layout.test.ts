@@ -115,13 +115,19 @@ describe('layoutTree', () => {
       ],
     })
 
-    expect(nodes[0]?.data).toEqual({
+    expect(nodes[0]?.data).toMatchObject({
       label: 'Root',
       metadata: { clade: 'example' },
+      collapsed: false,
+      hiddenDescendantCount: 0,
+      hasChildren: true,
     })
-    expect(nodes[1]?.data).toEqual({
+    expect(nodes[1]?.data).toMatchObject({
       label: 'Leaf',
       metadata: { iso: 'lxx' },
+      collapsed: false,
+      hiddenDescendantCount: 0,
+      hasChildren: false,
     })
     expect(edges[0]?.data).toEqual({ branchLength: 1.5, branchLabelX: 192 })
   })
@@ -131,6 +137,63 @@ describe('layoutTree', () => {
 
     expect(nodes[0]?.position).toEqual({ x: 0, y: 0 })
     expect(edges).toEqual([])
+  })
+
+  it('ignores collapsed ids for nodes without children', () => {
+    const { nodes } = layoutTree(
+      { id: 'only', label: 'Only' },
+      { collapsedIds: new Set(['only']) },
+    )
+
+    expect(nodes[0]?.data).toMatchObject({
+      collapsed: false,
+      hiddenDescendantCount: 0,
+      hasChildren: false,
+    })
+  })
+
+  it('lays out a collapsed node as a leaf and omits its descendants and edges', () => {
+    const { nodes, edges } = layoutTree(testTree, {
+      verticalSpacing: 80,
+      collapsedIds: new Set(['left']),
+    })
+    const positions = Object.fromEntries(
+      nodes.map((node) => [node.id, node.position]),
+    )
+
+    expect(nodes.map((node) => node.id)).toEqual([
+      'root',
+      'left',
+      'right',
+      'right-a',
+      'right-b',
+    ])
+    expect(edges.map((edge) => edge.id)).toEqual([
+      'root-left',
+      'root-right',
+      'right-right-a',
+      'right-right-b',
+    ])
+    expect(positions.left).toEqual({ x: 240, y: 0 })
+    expect(positions['right-a']).toEqual({ x: 480, y: 80 })
+    expect(positions['right-b']).toEqual({ x: 480, y: 160 })
+    expect(positions.right).toEqual({ x: 240, y: 120 })
+    expect(positions.root).toEqual({ x: 0, y: 60 })
+    expect(nodes.find((node) => node.id === 'left')?.data).toMatchObject({
+      collapsed: true,
+      hiddenDescendantCount: 2,
+      hasChildren: true,
+    })
+    expect(nodes.find((node) => node.id === 'right')?.data).toMatchObject({
+      collapsed: false,
+      hiddenDescendantCount: 0,
+      hasChildren: true,
+    })
+    expect(nodes.find((node) => node.id === 'right-a')?.data).toMatchObject({
+      collapsed: false,
+      hiddenDescendantCount: 0,
+      hasChildren: false,
+    })
   })
 
   it('aligns depth columns and keeps at least horizontalGap of clearance', () => {
@@ -218,8 +281,8 @@ describe('layoutTree', () => {
     })
 
     expect(nodes.map((node) => node.data)).toEqual([
-      { label: 'Root', metadata: {} },
-      { label: 'Leaf', metadata: { iso: 'lxx' } },
+      expect.objectContaining({ label: 'Root', metadata: {} }),
+      expect.objectContaining({ label: 'Leaf', metadata: { iso: 'lxx' } }),
     ])
     expect(edges[0]?.data).toEqual({ branchLength: 1.5, branchLabelX: 192 })
   })
