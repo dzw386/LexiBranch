@@ -25,6 +25,7 @@ import {
 import { createTreeHistory } from './state/history'
 import { createInitialTree, getInitialTree, useTreeStore } from './state/store'
 import { useToastsStore } from './state/toasts'
+import { THEME_STORAGE_KEY } from './theme/theme'
 import type { PhyloTree } from './domain/types'
 
 const imageExportMock = vi.hoisted(() => ({
@@ -53,6 +54,45 @@ function countRenderedNodes(): number {
   return document.querySelectorAll('.react-flow__node').length
 }
 
+type ThemeListener = (event: MediaQueryListEvent) => void
+
+function stubSystemTheme(initialDark: boolean): (dark: boolean) => void {
+  const listeners = new Set<ThemeListener>()
+  const mediaQueryList = {
+    matches: initialDark,
+    media: '(prefers-color-scheme: dark)',
+    onchange: null,
+    addEventListener: (
+      _type: string,
+      listener: EventListenerOrEventListenerObject,
+    ) => {
+      if (typeof listener === 'function') {
+        listeners.add(listener as ThemeListener)
+      }
+    },
+    removeEventListener: (
+      _type: string,
+      listener: EventListenerOrEventListenerObject,
+    ) => {
+      if (typeof listener === 'function') {
+        listeners.delete(listener as ThemeListener)
+      }
+    },
+    dispatchEvent: () => true,
+  }
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => mediaQueryList),
+  )
+
+  return (dark: boolean) => {
+    mediaQueryList.matches = dark
+    for (const listener of listeners) {
+      listener({ matches: dark } as MediaQueryListEvent)
+    }
+  }
+}
+
 function createTextFile(name: string, contents: string): File {
   const file = new File([contents], name, { type: 'text/plain' })
   Object.defineProperty(file, 'text', { value: async () => contents })
@@ -73,6 +113,8 @@ function importFile(file: File, buttonLabel = 'Import'): void {
 describe('App', () => {
   afterEach(async () => {
     cleanup()
+    document.documentElement.classList.remove('dark')
+    document.documentElement.style.colorScheme = ''
     vi.useRealTimers()
     vi.restoreAllMocks()
     imageExportMock.exportTreeImage
@@ -237,6 +279,43 @@ describe('App', () => {
       expect(mobileToggle.getAttribute('aria-expanded')).toBe('false'),
     )
     expect(document.activeElement).toBe(mobileToggle)
+  })
+
+  it('applies and persists the selected theme', () => {
+    mountApp()
+
+    const themeSelector = screen.getByRole('combobox', {
+      name: 'Theme',
+    }) as HTMLSelectElement
+    expect(themeSelector.value).toBe('auto')
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
+
+    fireEvent.change(themeSelector, { target: { value: 'dark' } })
+
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark')
+
+    fireEvent.change(themeSelector, { target: { value: 'light' } })
+
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('light')
+  })
+
+  it('follows the system theme in auto mode and falls back to light', () => {
+    const setSystemDark = stubSystemTheme(true)
+    mountApp()
+
+    expect(
+      (screen.getByRole('combobox', { name: 'Theme' }) as HTMLSelectElement)
+        .value,
+    ).toBe('auto')
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
+
+    act(() => setSystemDark(false))
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
+
+    act(() => setSystemDark(true))
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
   })
 
   it('switches the interface language immediately and persists the choice', async () => {
@@ -733,6 +812,7 @@ describe('App', () => {
       nodes: expect.any(Array),
       edges: expect.any(Array),
       format: 'png',
+      theme: 'light',
     })
     expect(anchorClick).toHaveBeenCalledTimes(1)
     expect(await screen.findByText('Downloaded “tree.png”.')).toBeDefined()
@@ -764,10 +844,44 @@ describe('App', () => {
         nodes: expect.any(Array),
         edges: expect.any(Array),
         format: 'svg',
+        theme: 'light',
       }),
     )
     expect(anchorClick).toHaveBeenCalledTimes(1)
     expect(await screen.findByText('Downloaded “tree.svg”.')).toBeDefined()
+  })
+
+  it('exports images in a chosen theme without changing the app theme', async () => {
+    imageExportMock.exportTreeImage.mockClear()
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    mountApp()
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Theme' }), {
+      target: { value: 'dark' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'File format' }), {
+      target: { value: 'png' },
+    })
+
+    const imageThemeSelector = screen.getByRole('combobox', {
+      name: 'Image theme',
+    }) as HTMLSelectElement
+    expect(imageThemeSelector.value).toBe('dark')
+
+    fireEvent.change(imageThemeSelector, { target: { value: 'light' } })
+
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }))
+
+    await waitFor(() =>
+      expect(imageExportMock.exportTreeImage).toHaveBeenCalledWith(
+        expect.objectContaining({ theme: 'light' }),
+      ),
+    )
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
   })
 
   it('shows an error toast when the image export fails', async () => {

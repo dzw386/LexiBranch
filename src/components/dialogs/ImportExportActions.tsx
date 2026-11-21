@@ -14,6 +14,7 @@ import {
   serialize as serializeNHX,
 } from '../../parsers/nhx'
 import { useToastsStore } from '../../state/toasts'
+import type { ResolvedTheme } from '../../theme/theme'
 import { exportTreeImage, type ExportImageFormat } from '../canvas/exportImage'
 import { Button } from '../ui/button'
 import {
@@ -30,6 +31,7 @@ interface ImportExportActionsProps {
   tree: PhyloTree
   nodes: PhyloFlowNode[]
   edges: PhyloFlowEdge[]
+  theme: ResolvedTheme
   onImport: (tree: PhyloTree) => void
 }
 
@@ -62,6 +64,7 @@ export function ImportExportActions({
   tree,
   nodes,
   edges,
+  theme,
   onImport,
 }: ImportExportActionsProps) {
   const { t } = useTranslation()
@@ -75,6 +78,7 @@ export function ImportExportActions({
   } | null>(null)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<ExportFormat>('newick')
+  const [exportImageTheme, setExportImageTheme] = useState<ResolvedTheme>(theme)
   const [isExporting, setIsExporting] = useState(false)
   const hasMetadata = Object.values(tree.nodes).some(
     (node) => Object.keys(node.metadata).length > 0,
@@ -129,6 +133,11 @@ export function ImportExportActions({
     setPendingImport(null)
   }
 
+  function openExportDialog(): void {
+    setExportImageTheme(theme)
+    setExportDialogOpen(true)
+  }
+
   async function handleDownload(): Promise<void> {
     const fileName = t(`${exportFormat}ExportFileName`)
 
@@ -139,6 +148,7 @@ export function ImportExportActions({
           nodes,
           edges,
           format: exportFormat,
+          theme: exportImageTheme,
         })
         triggerDownload(dataUrl, fileName)
         setExportDialogOpen(false)
@@ -210,7 +220,7 @@ export function ImportExportActions({
         size="sm"
         className="h-11 w-11 shrink-0 px-2 sm:h-8 sm:w-auto sm:px-3"
         aria-label={t('export')}
-        onClick={() => setExportDialogOpen(true)}
+        onClick={openExportDialog}
       >
         <Download aria-hidden="true" />
         <span className="hidden sm:inline">{t('export')}</span>
@@ -246,6 +256,32 @@ export function ImportExportActions({
               <option value="svg">{t('svgFormat')}</option>
             </select>
           </div>
+          {isImageFormat(exportFormat) ? (
+            <div className="grid gap-2">
+              <label
+                htmlFor="export-image-theme"
+                className="text-sm font-medium leading-none"
+              >
+                {t('imageTheme')}
+              </label>
+              <select
+                id="export-image-theme"
+                value={exportImageTheme}
+                onChange={(event) =>
+                  setExportImageTheme(
+                    event.currentTarget.value as ResolvedTheme,
+                  )
+                }
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="light">{t('themeLight')}</option>
+                <option value="dark">{t('themeDark')}</option>
+              </select>
+              <p className="text-xs text-muted-foreground">
+                {t('imageThemeHint')}
+              </p>
+            </div>
+          ) : null}
           {isImageFormat(exportFormat) ? (
             <p
               role="status"

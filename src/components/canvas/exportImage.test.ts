@@ -129,6 +129,16 @@ describe('buildExportTreeSvg', () => {
     expect(svg).not.toContain('foreignObject')
   })
 
+  it('renders the dark palette when requested', () => {
+    const svg = buildExportTreeSvg(nodes, edges, 1192, 672, 'dark')
+
+    expect(svg).toContain('fill="#0a0a0a"')
+    expect(svg).toContain('fill="#171717"')
+    expect(svg).toContain('fill="#fafafa"')
+    expect(svg).toContain('stroke="#a3a3a3"')
+    expect(svg).toContain('flood-opacity="0.6"')
+  })
+
   it('truncates node labels that do not fit their node box', () => {
     const svg = buildExportTreeSvg(
       [

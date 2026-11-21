@@ -5,6 +5,9 @@ import './index.css'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import i18n from './i18n'
+import { initializeTheme } from './theme/theme'
+
+initializeTheme()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

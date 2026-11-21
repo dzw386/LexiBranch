@@ -8,6 +8,27 @@
       content="LexiBranch interactive language phylogeny tool"
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      ;(() => {
+        try {
+          const storedTheme = localStorage.getItem('lexibranch-theme')
+          const preference =
+            storedTheme === 'light' || storedTheme === 'dark'
+              ? storedTheme
+              : 'auto'
+          const dark =
+            preference === 'dark' ||
+            (preference === 'auto' &&
+              typeof matchMedia === 'function' &&
+              matchMedia('(prefers-color-scheme: dark)').matches)
+
+          document.documentElement.classList.toggle('dark', dark)
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+        } catch {
+          document.documentElement.classList.remove('dark')
+        }
+      })()
+    </script>
     <title>LexiBranch</title>
   </head>
   <body>

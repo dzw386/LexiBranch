@@ -28,6 +28,7 @@ import { NewTreeAction } from './components/dialogs/NewTreeAction'
 import { AnalysisPanel } from './components/panels/AnalysisPanel'
 import { NodeDetailsPanel } from './components/panels/NodeDetailsPanel'
 import { Button } from './components/ui/button'
+import { ThemeSwitcher } from './components/ThemeSwitcher'
 import { Toaster } from './components/ui/toast'
 import {
   getSubtreeIds,
@@ -44,6 +45,7 @@ import {
   type PhyloFlowNode,
 } from './layout/layout'
 import { useTreeStore } from './state/store'
+import { useTheme } from './theme/useTheme'
 
 const nodeTypes = { phylo: PhyloNode }
 const edgeTypes = { phylo: PhyloEdge }
@@ -92,6 +94,11 @@ function isTextEditingTarget(target: EventTarget | null): boolean {
 
 function App() {
   const { t, i18n } = useTranslation()
+  const {
+    preference: themePreference,
+    resolvedTheme,
+    setPreference: setThemePreference,
+  } = useTheme()
   const ariaLabelConfig = useMemo<AriaLabelConfig>(
     () => ({
       'node.a11yDescription.default': t('flowNodeDescription'),
@@ -539,12 +546,17 @@ function App() {
             </Button>
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            <ThemeSwitcher
+              value={themePreference}
+              onChange={setThemePreference}
+            />
             <NewTreeAction onNewTree={() => newTree(t('newNode'))} />
             <LoadExampleMenu onLoadExample={importTree} />
             <ImportExportActions
               tree={tree}
               nodes={measuredLayoutNodes}
               edges={edges}
+              theme={resolvedTheme}
               onImport={importTree}
             />
           </div>
@@ -684,6 +696,7 @@ function App() {
             nodes={nodes}
             edges={localizedEdges}
             ariaLabelConfig={ariaLabelConfig}
+            colorMode={resolvedTheme}
             onInit={setReactFlowInstance}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}

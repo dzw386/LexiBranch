@@ -1,6 +1,7 @@
 import type { Node } from '@xyflow/react'
 import type { PhyloFlowEdge, PhyloFlowNode } from '../../layout/layout'
 import { formatBranchLength } from '../../lib/branchLength'
+import type { ResolvedTheme } from '../../theme/theme'
 
 export type ExportImageFormat = 'png' | 'svg'
 
@@ -8,6 +9,7 @@ export interface ExportTreeImageOptions {
   nodes: PhyloFlowNode[]
   edges: PhyloFlowEdge[]
   format: ExportImageFormat
+  theme?: ResolvedTheme
 }
 
 const EXPORT_IMAGE_SCALES = [2, 1, 0.5, 0.25, 0.125, 0.0625, 0.03125]
@@ -27,11 +29,36 @@ const BRANCH_LABEL_HEIGHT = 19
 const FONT_FAMILY = 'ui-sans-serif, system-ui, sans-serif'
 const NODE_FONT = `500 14px ${FONT_FAMILY}`
 const BRANCH_LABEL_FONT = `400 11px ${FONT_FAMILY}`
-const COLOR_BACKGROUND = '#ffffff'
-const COLOR_TEXT = '#262626'
-const COLOR_MUTED = '#737373'
-const COLOR_BORDER = '#e5e5e5'
-const COLOR_BADGE = '#f5f5f5'
+interface ExportPalette {
+  background: string
+  nodeBackground: string
+  text: string
+  muted: string
+  border: string
+  badge: string
+  shadowOpacity: string
+}
+
+const EXPORT_PALETTES: Record<ResolvedTheme, ExportPalette> = {
+  light: {
+    background: '#ffffff',
+    nodeBackground: '#ffffff',
+    text: '#262626',
+    muted: '#737373',
+    border: '#e5e5e5',
+    badge: '#f5f5f5',
+    shadowOpacity: '0.1',
+  },
+  dark: {
+    background: '#0a0a0a',
+    nodeBackground: '#171717',
+    text: '#fafafa',
+    muted: '#a3a3a3',
+    border: '#2e2e2e',
+    badge: '#262626',
+    shadowOpacity: '0.6',
+  },
+}
 
 interface ExportBounds {
   x: number
@@ -217,27 +244,27 @@ function nodeCenterY(node: ExportNode): number {
   return node.y + node.height / 2
 }
 
-function buildNodeMarkup(node: ExportNode): string {
+function buildNodeMarkup(node: ExportNode, palette: ExportPalette): string {
   const hasBadge = node.metadataCount > 0
   const labelWidth =
     node.width - NODE_PADDING * 2 - (hasBadge ? BADGE_SIZE + NODE_GAP : 0)
   const label = truncateText(node.label, labelWidth, NODE_FONT)
   const centerY = nodeCenterY(node)
   const parts = [
-    `<rect x="${formatNumber(node.x)}" y="${formatNumber(node.y)}" width="${node.width}" height="${node.height}" rx="8" fill="${COLOR_BACKGROUND}" stroke="${COLOR_BORDER}" stroke-opacity="0.8" filter="url(#node-shadow)"/>`,
+    `<rect x="${formatNumber(node.x)}" y="${formatNumber(node.y)}" width="${node.width}" height="${node.height}" rx="8" fill="${palette.nodeBackground}" stroke="${palette.border}" stroke-opacity="0.8" filter="url(#node-shadow)"/>`,
   ]
 
   if (label !== '') {
     parts.push(
-      `<text x="${formatNumber(node.x + NODE_PADDING)}" y="${formatNumber(centerY)}" font-size="14" font-weight="500" fill="${COLOR_TEXT}" dominant-baseline="central">${escapeXml(label)}</text>`,
+      `<text x="${formatNumber(node.x + NODE_PADDING)}" y="${formatNumber(centerY)}" font-size="14" font-weight="500" fill="${palette.text}" dominant-baseline="central">${escapeXml(label)}</text>`,
     )
   }
 
   if (hasBadge) {
     const centerX = node.x + node.width - NODE_PADDING - BADGE_SIZE / 2
     parts.push(
-      `<circle cx="${formatNumber(centerX)}" cy="${formatNumber(centerY)}" r="${BADGE_SIZE / 2}" fill="${COLOR_BADGE}"/>`,
-      `<text x="${formatNumber(centerX)}" y="${formatNumber(centerY)}" font-size="10" font-weight="600" fill="${COLOR_MUTED}" text-anchor="middle" dominant-baseline="central">${node.metadataCount}</text>`,
+      `<circle cx="${formatNumber(centerX)}" cy="${formatNumber(centerY)}" r="${BADGE_SIZE / 2}" fill="${palette.badge}"/>`,
+      `<text x="${formatNumber(centerX)}" y="${formatNumber(centerY)}" font-size="10" font-weight="600" fill="${palette.muted}" text-anchor="middle" dominant-baseline="central">${node.metadataCount}</text>`,
     )
   }
 
@@ -265,6 +292,7 @@ function buildEdgeMarkup(
 function buildBranchLabelMarkup(
   edge: PhyloFlowEdge,
   nodes: Map<string, ExportNode>,
+  palette: ExportPalette,
 ): string {
   const source = nodes.get(edge.source)
   const target = nodes.get(edge.target)
@@ -282,9 +310,9 @@ function buildBranchLabelMarkup(
   const bottom = nodeCenterY(target) - BRANCH_LABEL_OFFSET
   const top = bottom - BRANCH_LABEL_HEIGHT
   const parts = [
-    `<line x1="${formatNumber(centerX)}" y1="${formatNumber(bottom)}" x2="${formatNumber(centerX)}" y2="${formatNumber(nodeCenterY(target))}" stroke="${COLOR_MUTED}" stroke-width="1" stroke-dasharray="2 2" opacity="0.5"/>`,
-    `<rect x="${formatNumber(centerX - boxWidth / 2)}" y="${formatNumber(top)}" width="${formatNumber(boxWidth)}" height="${BRANCH_LABEL_HEIGHT}" rx="3" fill="${COLOR_BACKGROUND}" stroke="${COLOR_BORDER}"/>`,
-    `<text x="${formatNumber(centerX)}" y="${formatNumber(top + BRANCH_LABEL_HEIGHT / 2)}" font-size="11" fill="${COLOR_MUTED}" text-anchor="middle" dominant-baseline="central">${escapeXml(label)}</text>`,
+    `<line x1="${formatNumber(centerX)}" y1="${formatNumber(bottom)}" x2="${formatNumber(centerX)}" y2="${formatNumber(nodeCenterY(target))}" stroke="${palette.muted}" stroke-width="1" stroke-dasharray="2 2" opacity="0.5"/>`,
+    `<rect x="${formatNumber(centerX - boxWidth / 2)}" y="${formatNumber(top)}" width="${formatNumber(boxWidth)}" height="${BRANCH_LABEL_HEIGHT}" rx="3" fill="${palette.background}" stroke="${palette.border}"/>`,
+    `<text x="${formatNumber(centerX)}" y="${formatNumber(top + BRANCH_LABEL_HEIGHT / 2)}" font-size="11" fill="${palette.muted}" text-anchor="middle" dominant-baseline="central">${escapeXml(label)}</text>`,
   ]
 
   return parts.join('')
@@ -295,7 +323,9 @@ export function buildExportTreeSvg(
   edges: PhyloFlowEdge[],
   width: number,
   height: number,
+  theme: ResolvedTheme = 'light',
 ): string {
+  const palette = EXPORT_PALETTES[theme]
   const preparedNodes = prepareNodes(nodes)
   const bounds = getExportBounds(preparedNodes)
   const nodeMap = new Map(preparedNodes.map((node) => [node.id, node]))
@@ -303,15 +333,17 @@ export function buildExportTreeSvg(
     .map((edge) => buildEdgeMarkup(edge, nodeMap))
     .join('')
   const branchLabelMarkup = edges
-    .map((edge) => buildBranchLabelMarkup(edge, nodeMap))
+    .map((edge) => buildBranchLabelMarkup(edge, nodeMap, palette))
     .join('')
-  const nodeMarkup = preparedNodes.map(buildNodeMarkup).join('')
+  const nodeMarkup = preparedNodes
+    .map((node) => buildNodeMarkup(node, palette))
+    .join('')
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${formatNumber(bounds.x)} ${formatNumber(bounds.y)} ${bounds.width} ${bounds.height}" font-family="${FONT_FAMILY}">`,
-    `<defs><filter id="node-shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.1"/></filter></defs>`,
-    `<rect x="${formatNumber(bounds.x)}" y="${formatNumber(bounds.y)}" width="${bounds.width}" height="${bounds.height}" fill="${COLOR_BACKGROUND}"/>`,
-    `<g fill="none" stroke="${COLOR_MUTED}" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter" shape-rendering="crispEdges">${edgeMarkup}</g>`,
+    `<defs><filter id="node-shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000000" flood-opacity="${palette.shadowOpacity}"/></filter></defs>`,
+    `<rect x="${formatNumber(bounds.x)}" y="${formatNumber(bounds.y)}" width="${bounds.width}" height="${bounds.height}" fill="${palette.background}"/>`,
+    `<g fill="none" stroke="${palette.muted}" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter" shape-rendering="crispEdges">${edgeMarkup}</g>`,
     branchLabelMarkup,
     nodeMarkup,
     '</svg>',
@@ -322,6 +354,7 @@ async function rasterizeSvg(
   svg: string,
   width: number,
   height: number,
+  palette: ExportPalette,
 ): Promise<string> {
   const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
   const url = URL.createObjectURL(blob)
@@ -346,7 +379,7 @@ async function rasterizeSvg(
       throw new Error('Canvas is not available.')
     }
 
-    context.fillStyle = COLOR_BACKGROUND
+    context.fillStyle = palette.background
     context.fillRect(0, 0, width, height)
     context.drawImage(image, 0, 0, width, height)
 
@@ -360,13 +393,14 @@ export async function exportTreeImage({
   nodes,
   edges,
   format,
+  theme = 'light',
 }: ExportTreeImageOptions): Promise<string> {
   const { width, height } = getExportImageSize(nodes)
-  const svg = buildExportTreeSvg(nodes, edges, width, height)
+  const svg = buildExportTreeSvg(nodes, edges, width, height, theme)
 
   if (format === 'svg') {
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
   }
 
-  return rasterizeSvg(svg, width, height)
+  return rasterizeSvg(svg, width, height, EXPORT_PALETTES[theme])
 }
