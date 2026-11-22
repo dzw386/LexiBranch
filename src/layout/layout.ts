@@ -25,6 +25,7 @@ export type PhyloNodeData = {
   collapsed?: boolean
   hiddenDescendantCount?: number
   hasChildren?: boolean
+  highlighted?: boolean
 }
 
 export type PhyloEdgeData = {

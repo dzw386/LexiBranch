@@ -184,6 +184,73 @@ describe('App', () => {
     ).toBe('2')
   })
 
+  it('searches nodes by label or metadata and keeps the search state', async () => {
+    mountApp()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    const dialog = await screen.findByRole('dialog')
+    const queryInput = within(dialog).getByLabelText('Query')
+
+    fireEvent.change(queryInput, { target: { value: 'West' } })
+
+    await waitFor(() =>
+      expect(
+        document.querySelector('[data-id="germanic"] .phylo-node--highlighted'),
+      ).not.toBeNull(),
+    )
+    expect(
+      document.querySelector('[data-id="german"] .phylo-node--highlighted'),
+    ).toBeNull()
+
+    fireEvent.change(within(dialog).getByLabelText('Search in'), {
+      target: { value: 'label' },
+    })
+    await waitFor(() =>
+      expect(document.querySelector('.phylo-node--highlighted')).toBeNull(),
+    )
+
+    fireEvent.change(within(dialog).getByLabelText('Search in'), {
+      target: { value: 'metadata' },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Germanic/u }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(useTreeStore.getState().selectedNodeId).toBe('germanic')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    const reopenedDialog = await screen.findByRole('dialog')
+    expect(
+      (within(reopenedDialog).getByLabelText('Query') as HTMLInputElement)
+        .value,
+    ).toBe('West')
+    expect(
+      (within(reopenedDialog).getByLabelText('Search in') as HTMLSelectElement)
+        .value,
+    ).toBe('metadata')
+    expect(
+      within(reopenedDialog).getByRole('button', { name: /^Germanic/u }),
+    ).toBeDefined()
+  })
+
+  it('reveals hidden search results by expanding collapsed ancestors', async () => {
+    mountApp()
+
+    await screen.findByText('English')
+    fireEvent.click(screen.getByLabelText('Collapse subtree of “Germanic”'))
+    expect(screen.queryByText('English')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText('Query'), {
+      target: { value: 'English' },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: /^English$/u }))
+
+    expect(useTreeStore.getState().selectedNodeId).toBe('english')
+    expect(useTreeStore.getState().collapsedNodeIds).toEqual([])
+    expect(await screen.findByText('English')).toBeDefined()
+  })
+
   it('switches between cladogram and phylogram view modes', () => {
     mountApp()
 

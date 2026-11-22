@@ -100,6 +100,12 @@ describe('PhyloNode', () => {
     expect(markup).toContain('ring-2 ring-ring')
   })
 
+  it('highlights search matches', () => {
+    const markup = renderNode({ highlighted: true })
+
+    expect(markup).toContain('phylo-node--highlighted')
+  })
+
   it('toggles a parent from its control without selecting the node', async () => {
     render(
       <I18nextProvider i18n={i18n}>

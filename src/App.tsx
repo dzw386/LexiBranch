@@ -25,11 +25,13 @@ import { AboutDialog } from './components/dialogs/AboutDialog'
 import { ImportExportActions } from './components/dialogs/ImportExportActions'
 import { LoadExampleMenu } from './components/dialogs/LoadExampleMenu'
 import { NewTreeAction } from './components/dialogs/NewTreeAction'
+import { SearchDialog } from './components/dialogs/SearchDialog'
 import { AnalysisPanel } from './components/panels/AnalysisPanel'
 import { NodeDetailsPanel } from './components/panels/NodeDetailsPanel'
 import { Button } from './components/ui/button'
 import { ThemeSwitcher } from './components/ThemeSwitcher'
 import { Toaster } from './components/ui/toast'
+import { searchTree, type SearchScope } from './domain/search'
 import {
   getSubtreeIds,
   TreeOperationError,
@@ -147,6 +149,11 @@ function App() {
   const [moveError, setMoveError] = useState<string | null>(null)
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchScope, setSearchScope] = useState<SearchScope>('all')
+  const [searchFocusNodeId, setSearchFocusNodeId] = useState<string | null>(
+    null,
+  )
   const [nodeMeasurements, setNodeMeasurements] = useState<
     Record<string, NodeMeasurement>
   >({})
@@ -217,6 +224,14 @@ function App() {
     () => new Set(collapsedNodeIds),
     [collapsedNodeIds],
   )
+  const searchResults = useMemo(
+    () => searchTree(tree, searchQuery, searchScope),
+    [tree, searchQuery, searchScope],
+  )
+  const highlightedNodeIds = useMemo(
+    () => new Set(searchResults.map((result) => result.nodeId)),
+    [searchResults],
+  )
   const { nodes: layoutNodes, edges } = useMemo(
     () =>
       layoutPhyloTree(tree, {
@@ -250,10 +265,21 @@ function App() {
   )
   const nodes = useMemo(
     () =>
-      measuredLayoutNodes.map((node) =>
-        node.id === selectedNodeId ? { ...node, selected: true } : node,
-      ),
-    [measuredLayoutNodes, selectedNodeId],
+      measuredLayoutNodes.map((node) => {
+        const highlighted = highlightedNodeIds.has(node.id)
+        const selected = node.id === selectedNodeId
+
+        if (!highlighted && !selected) {
+          return node
+        }
+
+        return {
+          ...node,
+          selected,
+          data: highlighted ? { ...node.data, highlighted: true } : node.data,
+        }
+      }),
+    [measuredLayoutNodes, selectedNodeId, highlightedNodeIds],
   )
   const localizedEdges = useMemo(
     () => localizeEdgeAriaLabels(edges, tree, t),
@@ -266,12 +292,41 @@ function App() {
     }
 
     previousLayoutKey.current = layoutKey
+
+    if (searchFocusNodeId !== null) {
+      return
+    }
+
     const timeoutId = window.setTimeout(() => {
       void reactFlowInstance.fitView(FIT_VIEW_OPTIONS)
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [reactFlowInstance, layoutKey])
+  }, [reactFlowInstance, layoutKey, searchFocusNodeId])
+
+  useEffect(() => {
+    if (searchFocusNodeId === null || reactFlowInstance === null) {
+      return
+    }
+
+    const targetNode = layoutNodes.find((node) => node.id === searchFocusNodeId)
+
+    if (targetNode === undefined) {
+      return
+    }
+
+    const measured = nodeMeasurements[searchFocusNodeId]
+    const timeoutId = window.setTimeout(() => {
+      setSearchFocusNodeId(null)
+      void reactFlowInstance.setCenter(
+        targetNode.position.x + (measured?.width ?? 144) / 2,
+        targetNode.position.y + (measured?.height ?? 44) / 2,
+        { zoom: 1, duration: 300 },
+      )
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [searchFocusNodeId, reactFlowInstance, layoutNodes, nodeMeasurements])
 
   const selectedNode =
     layoutNodes.find((node) => node.id === selectedNodeId) ?? null
@@ -445,6 +500,30 @@ function App() {
     }
   }
 
+  function handleSelectSearchResult(nodeId: string): void {
+    if (pendingMoveNodeId !== null) {
+      setMoveError(null)
+      cancelMoveSubtree()
+    }
+
+    const collapsedAncestorIds: string[] = []
+    let ancestorId = tree.nodes[nodeId]?.parentId ?? null
+
+    while (ancestorId !== null) {
+      if (collapsedIds.has(ancestorId)) {
+        collapsedAncestorIds.push(ancestorId)
+      }
+      ancestorId = tree.nodes[ancestorId]?.parentId ?? null
+    }
+
+    for (const collapsedAncestorId of collapsedAncestorIds) {
+      toggleSubtreeCollapsed(collapsedAncestorId)
+    }
+
+    selectNode(nodeId)
+    setSearchFocusNodeId(nodeId)
+  }
+
   return (
     <div className="app-shell flex w-full flex-col overflow-hidden bg-background text-foreground">
       <header className="relative z-40 flex shrink-0 flex-col gap-2 border-b bg-card px-3 py-2 sm:px-4 lg:h-14 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-6 lg:py-0">
@@ -564,6 +643,14 @@ function App() {
             </Button>
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            <SearchDialog
+              query={searchQuery}
+              scope={searchScope}
+              results={searchResults}
+              onQueryChange={setSearchQuery}
+              onScopeChange={setSearchScope}
+              onSelectResult={handleSelectSearchResult}
+            />
             <ThemeSwitcher
               value={themePreference}
               onChange={setThemePreference}

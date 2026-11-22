@@ -37,6 +37,8 @@ export function PhyloNode({
         'phylo-node relative flex min-w-36 max-w-52 items-center gap-2 rounded-md border border-border/80 bg-card px-3 py-2 text-sm text-card-foreground shadow-sm transition-shadow',
         selected && 'ring-2 ring-ring ring-offset-2 ring-offset-background',
         collapsed && 'phylo-node--collapsed border-dashed bg-muted/40',
+        data.highlighted &&
+          'phylo-node--highlighted border-amber-500/70 bg-amber-100/70 dark:border-amber-400/60 dark:bg-amber-400/10',
       )}
     >
       <Handle
