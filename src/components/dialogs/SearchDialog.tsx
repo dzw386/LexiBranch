@@ -69,7 +69,9 @@ export function SearchDialog({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t('searchTitle')}</DialogTitle>
-            <DialogDescription>{t('searchDescription')}</DialogDescription>
+            <DialogDescription className="[@media(max-height:640px)]:hidden">
+              {t('searchDescription')}
+            </DialogDescription>
           </DialogHeader>
 
           <form
@@ -136,7 +138,7 @@ export function SearchDialog({
               </p>
               <ul
                 aria-label={t('searchResults')}
-                className="max-h-64 space-y-1 overflow-y-auto"
+                className="max-h-64 space-y-1 overflow-y-auto [@media(max-height:640px)]:max-h-none"
               >
                 {results.map((result) => {
                   const resultLabel =
