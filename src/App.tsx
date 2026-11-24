@@ -9,27 +9,16 @@ import {
   type ReactFlowInstance,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import {
-  PanelBottomClose,
-  PanelBottomOpen,
-  PanelLeftClose,
-  PanelLeftOpen,
-  X,
-} from 'lucide-react'
+import { X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PhyloEdge } from './components/canvas/PhyloEdge'
 import { PhyloNode } from './components/canvas/PhyloNode'
 import { localizeEdgeAriaLabels } from './components/canvas/localizeEdgeAriaLabels'
-import { AboutDialog } from './components/dialogs/AboutDialog'
-import { ImportExportActions } from './components/dialogs/ImportExportActions'
-import { LoadExampleMenu } from './components/dialogs/LoadExampleMenu'
-import { NewTreeAction } from './components/dialogs/NewTreeAction'
-import { SearchDialog } from './components/dialogs/SearchDialog'
+import { AppHeader } from './components/header/AppHeader'
 import { AnalysisPanel } from './components/panels/AnalysisPanel'
 import { NodeDetailsPanel } from './components/panels/NodeDetailsPanel'
 import { Button } from './components/ui/button'
-import { ThemeSwitcher } from './components/ThemeSwitcher'
 import { Toaster } from './components/ui/toast'
 import { searchTree, type SearchScope } from './domain/search'
 import {
@@ -95,7 +84,7 @@ function isTextEditingTarget(target: EventTarget | null): boolean {
 }
 
 function App() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const {
     preference: themePreference,
     resolvedTheme,
@@ -526,147 +515,32 @@ function App() {
 
   return (
     <div className="app-shell flex w-full flex-col overflow-hidden bg-background text-foreground">
-      <header className="relative z-40 flex shrink-0 flex-col gap-2 border-b bg-card px-3 py-2 sm:px-4 lg:h-14 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-6 lg:py-0">
-        <div className="flex min-w-0 items-center justify-between gap-3 lg:justify-start">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
-              {t('appMonogram')}
-            </div>
-            <div className="min-w-0">
-              <h1 className="truncate text-sm font-semibold tracking-tight">
-                {t('appName')}
-              </h1>
-              <p className="hidden truncate text-xs text-muted-foreground sm:block">
-                {t('appTagline')}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2">
-            <label htmlFor="language-select" className="sr-only">
-              {t('language')}
-            </label>
-            <select
-              id="language-select"
-              value={i18n.resolvedLanguage ?? i18n.language}
-              onChange={(event) => {
-                void i18n.changeLanguage(event.currentTarget.value)
-              }}
-              className="h-11 max-w-28 rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-8 sm:max-w-none sm:text-sm"
-            >
-              <option value="en">{t('languageEnglish')}</option>
-              <option value="pl">{t('languagePolish')}</option>
-            </select>
-            <AboutDialog />
-            <Button
-              ref={mobileSidebarToggleRef}
-              type="button"
-              variant="outline"
-              size="icon"
-              className="h-11 w-11 shrink-0 md:hidden"
-              aria-label={t('toggleSidebar')}
-              aria-expanded={mobileSidebarOpen}
-              aria-controls="tree-tools-sidebar"
-              onClick={() => setMobileSidebarOpen((open) => !open)}
-            >
-              {mobileSidebarOpen ? (
-                <PanelBottomClose aria-hidden="true" />
-              ) : (
-                <PanelBottomOpen aria-hidden="true" />
-              )}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="hidden h-9 w-9 shrink-0 md:inline-flex"
-              aria-label={t('toggleSidebar')}
-              aria-expanded={desktopSidebarOpen}
-              aria-controls="tree-tools-sidebar"
-              onClick={() => setDesktopSidebarOpen((open) => !open)}
-            >
-              {desktopSidebarOpen ? (
-                <PanelLeftClose aria-hidden="true" />
-              ) : (
-                <PanelLeftOpen aria-hidden="true" />
-              )}
-            </Button>
-          </div>
-        </div>
-
-        <nav
-          className="flex min-w-0 flex-wrap items-center justify-between gap-2 lg:shrink-0 lg:flex-nowrap"
-          aria-label={t('workspaceActions')}
-        >
-          <label htmlFor="view-mode-select" className="sr-only">
-            {t('viewMode')}
-          </label>
-          <select
-            id="view-mode-select"
-            value={viewMode}
-            onChange={(event) =>
-              setViewMode(
-                event.currentTarget.value === 'phylogram'
-                  ? 'phylogram'
-                  : 'cladogram',
-              )
-            }
-            className="h-11 w-32 shrink-0 rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring lg:hidden"
-          >
-            <option value="cladogram">{t('cladogramMode')}</option>
-            <option value="phylogram">{t('phylogramMode')}</option>
-          </select>
-          <div
-            className="hidden items-center gap-1 rounded-md border bg-background p-0.5 lg:flex"
-            role="group"
-            aria-label={t('viewMode')}
-          >
-            <Button
-              type="button"
-              size="sm"
-              variant={viewMode === 'cladogram' ? 'secondary' : 'ghost'}
-              className="h-7 px-2 text-xs"
-              aria-pressed={viewMode === 'cladogram'}
-              onClick={() => setViewMode('cladogram')}
-            >
-              {t('cladogramMode')}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={viewMode === 'phylogram' ? 'secondary' : 'ghost'}
-              className="h-7 px-2 text-xs"
-              aria-pressed={viewMode === 'phylogram'}
-              onClick={() => setViewMode('phylogram')}
-            >
-              {t('phylogramMode')}
-            </Button>
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
-            <SearchDialog
-              query={searchQuery}
-              scope={searchScope}
-              results={searchResults}
-              onQueryChange={setSearchQuery}
-              onScopeChange={setSearchScope}
-              onSelectResult={handleSelectSearchResult}
-            />
-            <ThemeSwitcher
-              value={themePreference}
-              onChange={setThemePreference}
-            />
-            <NewTreeAction onNewTree={() => newTree(t('newNode'))} />
-            <LoadExampleMenu onLoadExample={importTree} />
-            <ImportExportActions
-              tree={tree}
-              nodes={measuredLayoutNodes}
-              edges={edges}
-              theme={resolvedTheme}
-              onImport={importTree}
-            />
-          </div>
-        </nav>
-      </header>
+      <AppHeader
+        toolbarProps={{
+          viewMode,
+          onViewModeChange: setViewMode,
+          searchQuery,
+          searchScope,
+          searchResults,
+          onSearchQueryChange: setSearchQuery,
+          onSearchScopeChange: setSearchScope,
+          onSelectSearchResult: handleSelectSearchResult,
+          themePreference,
+          onThemePreferenceChange: setThemePreference,
+          onNewTree: () => newTree(t('newNode')),
+          onLoadExample: importTree,
+          tree,
+          nodes: measuredLayoutNodes,
+          edges,
+          resolvedTheme,
+          onImport: importTree,
+        }}
+        mobileSidebarOpen={mobileSidebarOpen}
+        desktopSidebarOpen={desktopSidebarOpen}
+        onToggleMobileSidebar={() => setMobileSidebarOpen((open) => !open)}
+        onToggleDesktopSidebar={() => setDesktopSidebarOpen((open) => !open)}
+        mobileSidebarToggleRef={mobileSidebarToggleRef}
+      />
 
       <main className="relative flex min-h-0 flex-1 overflow-hidden">
         {mobileSidebarOpen ? (
