@@ -99,14 +99,42 @@ function createTextFile(name: string, contents: string): File {
   return file
 }
 
-function importFile(file: File, buttonLabel = 'Import'): void {
+const SAMPLE_NAMES = ['Indo-European', 'Uralic', 'Turkic', 'Sinitic', 'Japonic']
+
+function openSettings(triggerLabel = 'Settings') {
+  fireEvent.click(screen.getByRole('button', { name: triggerLabel }))
+  return screen.getByRole('dialog')
+}
+
+function closeDialog(dialog: HTMLElement): void {
+  fireEvent.click(
+    within(dialog).getAllByRole('button', { name: 'Close' }).at(-1)!,
+  )
+}
+
+function openTreeAction(itemLabel: string, menuLabel = 'Tree actions'): void {
+  fireEvent.click(screen.getByRole('button', { name: menuLabel }))
+  fireEvent.click(screen.getByRole('menuitem', { name: itemLabel }))
+}
+
+function openExportDialog(
+  itemLabel = 'Export',
+  menuLabel = 'Tree actions',
+): void {
+  openTreeAction(itemLabel, menuLabel)
+}
+
+function importFile(
+  file: File,
+  labels: { menu?: string; item?: string } = {},
+): void {
   const input = document.querySelector<HTMLInputElement>('input[type="file"]')
 
   if (input === null) {
     throw new Error('The tree file input was not rendered.')
   }
 
-  fireEvent.click(screen.getByRole('button', { name: buttonLabel }))
+  openTreeAction(labels.item ?? 'Import', labels.menu ?? 'Tree actions')
   fireEvent.change(input, { target: { files: [file] } })
 }
 
@@ -162,9 +190,8 @@ describe('App', () => {
 
     expect(markup).toContain('<header')
     expect(markup).toContain('LexiBranch')
-    expect(markup).toContain('New tree')
-    expect(markup).toContain('Import')
-    expect(markup).toContain('Export')
+    expect(markup).toContain('Tree actions')
+    expect(markup).toContain('Settings')
     expect(markup).toContain('Tree tools sidebar')
     expect(markup).toContain('Phylogenetic tree canvas')
   })
@@ -352,7 +379,8 @@ describe('App', () => {
   it('applies and persists the selected theme', () => {
     mountApp()
 
-    const themeSelector = screen.getByRole('combobox', {
+    const settings = openSettings()
+    const themeSelector = within(settings).getByRole('combobox', {
       name: 'Theme',
     }) as HTMLSelectElement
     expect(themeSelector.value).toBe('auto')
@@ -373,9 +401,13 @@ describe('App', () => {
     const setSystemDark = stubSystemTheme(true)
     mountApp()
 
+    const settings = openSettings()
     expect(
-      (screen.getByRole('combobox', { name: 'Theme' }) as HTMLSelectElement)
-        .value,
+      (
+        within(settings).getByRole('combobox', {
+          name: 'Theme',
+        }) as HTMLSelectElement
+      ).value,
     ).toBe('auto')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
 
@@ -389,13 +421,16 @@ describe('App', () => {
   it('switches the interface language immediately and persists the choice', async () => {
     mountApp()
 
-    const languageSelector = screen.getByRole('combobox', { name: 'Language' })
+    const settings = openSettings()
+    const languageSelector = within(settings).getByRole('combobox', {
+      name: 'Language',
+    })
     expect((languageSelector as HTMLSelectElement).value).toBe('en')
 
     fireEvent.change(languageSelector, { target: { value: 'pl' } })
 
     await waitFor(() => {
-      expect(screen.getByText('Nowe drzewo')).toBeDefined()
+      expect(screen.getByRole('dialog', { name: 'Ustawienia' })).toBeDefined()
       expect(
         (screen.getByRole('combobox', { name: 'Język' }) as HTMLSelectElement)
           .value,
@@ -407,8 +442,55 @@ describe('App', () => {
       target: { value: 'en' },
     })
 
-    await waitFor(() => expect(screen.getByText('New tree')).toBeDefined())
+    await waitFor(() =>
+      expect(screen.getByRole('dialog', { name: 'Settings' })).toBeDefined(),
+    )
     expect(window.localStorage.getItem('lexibranch-language')).toBe('en')
+  })
+
+  it('opens About from the brand and Settings and restores focus', async () => {
+    mountApp()
+
+    const brandButton = screen.getByRole('button', { name: /LexiBranch/u })
+    fireEvent.click(brandButton)
+    const about = await screen.findByRole('dialog', {
+      name: 'About LexiBranch',
+    })
+    fireEvent.click(within(about).getAllByRole('button', { name: 'Close' })[0]!)
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() => expect(document.activeElement).toBe(brandButton))
+
+    const settings = openSettings()
+    const aboutButton = within(settings).getByRole('button', { name: 'About' })
+    fireEvent.click(aboutButton)
+
+    const stackedAbout = await screen.findByRole('dialog', {
+      name: 'About LexiBranch',
+    })
+    fireEvent.click(
+      within(stackedAbout).getAllByRole('button', { name: 'Close' })[0]!,
+    )
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'About LexiBranch' }),
+      ).toBeNull(),
+    )
+    await waitFor(() => expect(document.activeElement).toBe(aboutButton))
+  })
+
+  it('returns focus to the settings trigger when Settings closes', async () => {
+    mountApp()
+
+    const trigger = screen.getByRole('button', { name: 'Settings' })
+    fireEvent.click(trigger)
+    const settings = await screen.findByRole('dialog', { name: 'Settings' })
+
+    closeDialog(settings)
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() => expect(document.activeElement).toBe(trigger))
   })
 
   it('debounces tree autosave, flushes on close, and restores the saved tree', () => {
@@ -472,7 +554,7 @@ describe('App', () => {
     mountApp()
     const originalTree = useTreeStore.getState().tree
 
-    fireEvent.click(screen.getByRole('button', { name: 'New tree' }))
+    openTreeAction('New tree')
     expect((await screen.findByRole('dialog')).textContent).toContain(
       'Your current tree will be replaced with a blank tree.',
     )
@@ -481,7 +563,7 @@ describe('App', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(useTreeStore.getState().tree).toBe(originalTree)
 
-    fireEvent.click(screen.getByRole('button', { name: 'New tree' }))
+    openTreeAction('New tree')
     fireEvent.click(
       await screen.findByRole('button', { name: 'Create new tree' }),
     )
@@ -497,7 +579,7 @@ describe('App', () => {
     await i18n.changeLanguage('pl')
     mountApp()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Nowe drzewo' }))
+    openTreeAction('Nowe drzewo', 'Akcje drzewa')
     fireEvent.click(
       await screen.findByRole('button', { name: 'Utwórz nowe drzewo' }),
     )
@@ -511,9 +593,8 @@ describe('App', () => {
 
     const markup = renderApp()
 
-    expect(markup).toContain('Nowe drzewo')
-    expect(markup).toContain('Importuj')
-    expect(markup).toContain('Eksportuj')
+    expect(markup).toContain('Akcje drzewa')
+    expect(markup).toContain('Ustawienia')
     expect(markup).toContain('Panel narzędzi drzewa')
     expect(markup).toContain('Obszar drzewa filogenetycznego')
     expect(markup).toContain('Elementy sterujące widokiem drzewa')
@@ -641,24 +722,27 @@ describe('App', () => {
     })
   })
 
-  it('loads each sample from the Load example menu and clears selection', async () => {
+  it('loads each sample from the example picker and clears selection', async () => {
     mountApp()
 
     for (const [index, sample] of SAMPLES.entries()) {
       useTreeStore.getState().selectNode(useTreeStore.getState().tree.rootId)
       expect(useTreeStore.getState().selectedNodeId).not.toBeNull()
 
-      fireEvent.click(screen.getByRole('button', { name: 'Load example' }))
-      const menuItems = screen.getAllByRole('menuitem')
-      expect(menuItems).toHaveLength(SAMPLES.length)
-      const sampleName = menuItems[index]!.textContent ?? ''
-      fireEvent.click(menuItems[index]!)
+      const sampleName = SAMPLE_NAMES[index]!
+      openTreeAction('Load example…')
+      const picker = await screen.findByRole('dialog', {
+        name: 'Load an example',
+      })
+      fireEvent.click(within(picker).getByRole('button', { name: sampleName }))
 
       const expectedTree = parsePhyloXml(sample.text)
       const expectedRootLabel =
         expectedTree.nodes[expectedTree.rootId]?.label ?? ''
 
-      const confirmDialog = await screen.findByRole('dialog')
+      const confirmDialog = await screen.findByRole('dialog', {
+        name: `Load the “${sampleName}” example?`,
+      })
       expect(confirmDialog.textContent).toContain(sampleName)
       fireEvent.click(screen.getByRole('button', { name: 'Load this example' }))
 
@@ -679,7 +763,10 @@ describe('App', () => {
     const originalTree = useTreeStore.getState().tree
     mountApp()
 
-    importFile(createTextFile('broken.nwk', '(English,Polish'), 'Importuj')
+    importFile(createTextFile('broken.nwk', '(English,Polish'), {
+      menu: 'Akcje drzewa',
+      item: 'Importuj',
+    })
 
     const dialog = await screen.findByRole('dialog')
     expect(dialog.textContent).toContain('Nie udało się zaimportować pliku')
@@ -724,7 +811,7 @@ describe('App', () => {
 
     mountApp()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    openExportDialog()
     expect(screen.getByRole('combobox', { name: 'File format' })).toBeDefined()
     expect(
       screen.getByText(
@@ -772,7 +859,7 @@ describe('App', () => {
 
     mountApp()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    openExportDialog()
     fireEvent.change(screen.getByRole('combobox', { name: 'File format' }), {
       target: { value: 'nhx' },
     })
@@ -820,7 +907,7 @@ describe('App', () => {
 
     mountApp()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    openExportDialog()
     fireEvent.change(screen.getByRole('combobox', { name: 'File format' }), {
       target: { value: 'phyloxml' },
     })
@@ -865,7 +952,7 @@ describe('App', () => {
 
     mountApp()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    openExportDialog()
     fireEvent.change(screen.getByRole('combobox', { name: 'File format' }), {
       target: { value: 'png' },
     })
@@ -905,7 +992,7 @@ describe('App', () => {
 
     mountApp()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    openExportDialog()
     fireEvent.change(screen.getByRole('combobox', { name: 'File format' }), {
       target: { value: 'svg' },
     })
@@ -929,10 +1016,15 @@ describe('App', () => {
 
     mountApp()
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Theme' }), {
-      target: { value: 'dark' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    const settings = openSettings()
+    fireEvent.change(
+      within(settings).getByRole('combobox', { name: 'Theme' }),
+      {
+        target: { value: 'dark' },
+      },
+    )
+    closeDialog(settings)
+    openExportDialog()
     fireEvent.change(screen.getByRole('combobox', { name: 'File format' }), {
       target: { value: 'png' },
     })
@@ -963,7 +1055,7 @@ describe('App', () => {
 
     mountApp()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    openExportDialog()
     fireEvent.change(screen.getByRole('combobox', { name: 'File format' }), {
       target: { value: 'png' },
     })
@@ -1348,7 +1440,7 @@ describe('App', () => {
 
     mountApp()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    openExportDialog()
     fireEvent.click(screen.getByRole('button', { name: 'Download' }))
 
     const toast = await screen.findByText('Downloaded “tree.nwk”.')

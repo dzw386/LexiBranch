@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SearchResult, SearchScope } from '../../domain/search'
 import type { PhyloTree } from '../../domain/types'
@@ -6,12 +7,10 @@ import type {
   PhyloFlowEdge,
   PhyloFlowNode,
 } from '../../layout/layout'
-import type { ResolvedTheme, ThemePreference } from '../../theme/theme'
+import type { ResolvedTheme } from '../../theme/theme'
 import { ImportExportActions } from '../dialogs/ImportExportActions'
-import { LoadExampleMenu } from '../dialogs/LoadExampleMenu'
-import { NewTreeAction } from '../dialogs/NewTreeAction'
 import { SearchDialog } from '../dialogs/SearchDialog'
-import { ThemeSwitcher } from '../ThemeSwitcher'
+import { TreeActionsMenu } from '../dialogs/TreeActionsMenu'
 import { Button } from '../ui/button'
 
 export interface TreeToolbarProps {
@@ -23,8 +22,6 @@ export interface TreeToolbarProps {
   onSearchQueryChange: (query: string) => void
   onSearchScopeChange: (scope: SearchScope) => void
   onSelectSearchResult: (nodeId: string) => void
-  themePreference: ThemePreference
-  onThemePreferenceChange: (preference: ThemePreference) => void
   onNewTree: () => void
   onLoadExample: (tree: PhyloTree) => void
   tree: PhyloTree
@@ -43,8 +40,6 @@ export function TreeToolbar({
   onSearchQueryChange,
   onSearchScopeChange,
   onSelectSearchResult,
-  themePreference,
-  onThemePreferenceChange,
   onNewTree,
   onLoadExample,
   tree,
@@ -54,6 +49,7 @@ export function TreeToolbar({
   onImport,
 }: TreeToolbarProps) {
   const { t } = useTranslation()
+  const treeActionsTriggerRef = useRef<HTMLButtonElement>(null)
 
   return (
     <nav
@@ -113,19 +109,24 @@ export function TreeToolbar({
           onScopeChange={onSearchScopeChange}
           onSelectResult={onSelectSearchResult}
         />
-        <ThemeSwitcher
-          value={themePreference}
-          onChange={onThemePreferenceChange}
-        />
-        <NewTreeAction onNewTree={onNewTree} />
-        <LoadExampleMenu onLoadExample={onLoadExample} />
         <ImportExportActions
           tree={tree}
           nodes={nodes}
           edges={edges}
           theme={resolvedTheme}
           onImport={onImport}
-        />
+          returnFocusRef={treeActionsTriggerRef}
+        >
+          {({ openImport, openExport }) => (
+            <TreeActionsMenu
+              triggerRef={treeActionsTriggerRef}
+              onNewTree={onNewTree}
+              onLoadExample={onLoadExample}
+              onImport={openImport}
+              onExport={openExport}
+            />
+          )}
+        </ImportExportActions>
       </div>
     </nav>
   )

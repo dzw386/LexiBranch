@@ -1,3 +1,4 @@
+import type { RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '../ui/button'
 import {
@@ -15,6 +16,7 @@ export interface ConfirmDialogProps {
   description: string
   confirmLabel: string
   destructive?: boolean
+  returnFocusRef?: RefObject<HTMLElement | null>
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
 }
@@ -25,6 +27,7 @@ export function ConfirmDialog({
   description,
   confirmLabel,
   destructive = false,
+  returnFocusRef,
   onOpenChange,
   onConfirm,
 }: ConfirmDialogProps) {
@@ -35,9 +38,16 @@ export function ConfirmDialog({
     onOpenChange(false)
   }
 
+  function handleCloseAutoFocus(event: Event): void {
+    if (returnFocusRef?.current != null) {
+      event.preventDefault()
+      returnFocusRef.current.focus()
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent onCloseAutoFocus={handleCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

@@ -1,25 +1,27 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { I18nextProvider } from 'react-i18next'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import packageJson from '../../../package.json'
 import i18n from '../../i18n'
 import { AboutDialog } from './AboutDialog'
 
 function renderAbout() {
-  return render(
+  const onOpenChange = vi.fn()
+
+  render(
     <I18nextProvider i18n={i18n}>
-      <AboutDialog />
+      <AboutDialog open onOpenChange={onOpenChange} />
     </I18nextProvider>,
   )
+
+  return onOpenChange
 }
 
 describe('AboutDialog', () => {
   afterEach(cleanup)
 
-  it('opens from the header button and shows thesis, formats, and version', () => {
+  it('shows thesis, formats, and version when open', () => {
     renderAbout()
-
-    fireEvent.click(screen.getByRole('button', { name: 'About' }))
 
     const dialog = screen.getByRole('dialog')
     expect(dialog.textContent).toContain('About LexiBranch')
@@ -36,12 +38,11 @@ describe('AboutDialog', () => {
     expect(dialog.textContent).toContain(packageJson.version)
   })
 
-  it('closes from the close button', () => {
-    renderAbout()
+  it('requests closing from the close button', () => {
+    const onOpenChange = renderAbout()
 
-    fireEvent.click(screen.getByRole('button', { name: 'About' }))
     fireEvent.click(screen.getAllByRole('button', { name: 'Close' })[0]!)
 
-    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 })

@@ -1,5 +1,11 @@
-import { useRef, useState, type ChangeEvent } from 'react'
-import { Download, Upload } from 'lucide-react'
+import {
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+  type RefObject,
+} from 'react'
+import { Download } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { PhyloTree } from '../../domain/types'
 import type { PhyloFlowEdge, PhyloFlowNode } from '../../layout/layout'
@@ -33,6 +39,11 @@ interface ImportExportActionsProps {
   edges: PhyloFlowEdge[]
   theme: ResolvedTheme
   onImport: (tree: PhyloTree) => void
+  returnFocusRef?: RefObject<HTMLElement | null>
+  children: (actions: {
+    openImport: () => void
+    openExport: () => void
+  }) => ReactNode
 }
 
 type ImportError =
@@ -66,6 +77,8 @@ export function ImportExportActions({
   edges,
   theme,
   onImport,
+  returnFocusRef,
+  children,
 }: ImportExportActionsProps) {
   const { t } = useTranslation()
   const showToast = useToastsStore((state) => state.showToast)
@@ -138,6 +151,17 @@ export function ImportExportActions({
     setExportDialogOpen(true)
   }
 
+  function openImport(): void {
+    fileInputRef.current?.click()
+  }
+
+  function handleCloseAutoFocus(event: Event): void {
+    if (returnFocusRef?.current != null) {
+      event.preventDefault()
+      returnFocusRef.current.focus()
+    }
+  }
+
   async function handleDownload(): Promise<void> {
     const fileName = t(`${exportFormat}ExportFileName`)
 
@@ -202,32 +226,10 @@ export function ImportExportActions({
           void handleFileChange(event)
         }}
       />
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="h-11 w-11 shrink-0 px-2 sm:h-8 sm:w-auto sm:px-3"
-        aria-label={t('import')}
-        title={t('importTreeFile')}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <Upload aria-hidden="true" />
-        <span className="hidden sm:inline">{t('import')}</span>
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="h-11 w-11 shrink-0 px-2 sm:h-8 sm:w-auto sm:px-3"
-        aria-label={t('export')}
-        onClick={openExportDialog}
-      >
-        <Download aria-hidden="true" />
-        <span className="hidden sm:inline">{t('export')}</span>
-      </Button>
+      {children({ openImport, openExport: openExportDialog })}
 
       <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-        <DialogContent>
+        <DialogContent onCloseAutoFocus={handleCloseAutoFocus}>
           <DialogHeader>
             <DialogTitle>{t('exportAs')}</DialogTitle>
             <DialogDescription>
@@ -327,7 +329,7 @@ export function ImportExportActions({
           }
         }}
       >
-        <DialogContent>
+        <DialogContent onCloseAutoFocus={handleCloseAutoFocus}>
           <DialogHeader>
             <DialogTitle>{t('importErrorTitle')}</DialogTitle>
             <DialogDescription>
@@ -366,6 +368,7 @@ export function ImportExportActions({
         description={t('importConfirmDescription')}
         confirmLabel={t('confirmImport')}
         destructive
+        returnFocusRef={returnFocusRef}
         onOpenChange={(open) => {
           if (!open) {
             setPendingImport(null)

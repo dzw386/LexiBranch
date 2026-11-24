@@ -516,6 +516,8 @@ function App() {
   return (
     <div className="app-shell flex w-full flex-col overflow-hidden bg-background text-foreground">
       <AppHeader
+        themePreference={themePreference}
+        onThemePreferenceChange={setThemePreference}
         toolbarProps={{
           viewMode,
           onViewModeChange: setViewMode,
@@ -525,8 +527,6 @@ function App() {
           onSearchQueryChange: setSearchQuery,
           onSearchScopeChange: setSearchScope,
           onSelectSearchResult: handleSelectSearchResult,
-          themePreference,
-          onThemePreferenceChange: setThemePreference,
           onNewTree: () => newTree(t('newNode')),
           onLoadExample: importTree,
           tree,
